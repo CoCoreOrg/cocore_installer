@@ -42,18 +42,21 @@ rm "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz"
 echo "Contents of ${install_dir}/release-v${FIRECRACKER_VERSION}:"
 ls -l "${install_dir}/release-v${FIRECRACKER_VERSION}"
 
+# Handle nested directory structure
+nested_dir="${install_dir}/release-v${FIRECRACKER_VERSION}/release-${FIRECRACKER_VERSION}-${ARCH}"
+
 echo "Linking firecracker and jailer"
-if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
-    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/firecracker"
+if [ -f "${nested_dir}/firecracker" ]; then
+    sudo ln -sfn "${nested_dir}/firecracker" "${bin_dir}/firecracker"
 else
-    echo "Firecracker binary not found in ${install_dir}/release-v${FIRECRACKER_VERSION}"
+    echo "Firecracker binary not found in ${nested_dir}"
     exit 1
 fi
 
-if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
-    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/jailer"
+if [ -f "${nested_dir}/jailer" ]; then
+    sudo ln -sfn "${nested_dir}/jailer" "${bin_dir}/jailer"
 else
-    echo "Jailer binary not found in ${install_dir}/release-v${FIRECRACKER_VERSION}"
+    echo "Jailer binary not found in ${nested_dir}"
     exit 1
 fi
 

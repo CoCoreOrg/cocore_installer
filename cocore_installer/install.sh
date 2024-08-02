@@ -3,7 +3,7 @@
 set -e
 
 # Variables
-FIRECRACKER_VERSION="1.8.0"  # Update to the latest version
+FIRECRACKER_VERSION="1.8.0"  # Specify the desired version
 ROOTFS_FILE="rootfs.ext4"
 KERNEL_FILE="vmlinux"
 MOUNT_POINT="mnt"
@@ -12,29 +12,28 @@ TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"  # Correct path to task_wor
 # Install Firecracker and Jailer
 install_dir=/firecracker/releases
 bin_dir=/usr/bin
-release_url="https://github.com/firecracker-microvm/firecracker/releases"
-latest=$(basename $(curl -fsSLI -o /dev/null -w %{url_effective} ${release_url}/latest))
+release_url="https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}"
 arch=$(uname -m)
 
-if [ -d "${install_dir}/release-${latest}" ]; then
-    echo "${latest} already installed"
+if [ -d "${install_dir}/release-v${FIRECRACKER_VERSION}" ]; then
+    echo "Firecracker ${FIRECRACKER_VERSION} already installed"
 else
     mkdir -p "${install_dir}"
-    echo "downloading firecracker-${latest}-${arch}.tgz to ${install_dir}"
-    curl -o "${install_dir}/firecracker-${latest}-${arch}.tgz" -L "${release_url}/download/${latest}/firecracker-${latest}-${arch}.tgz"
+    echo "downloading firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz to ${install_dir}"
+    curl -o "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" -L "${release_url}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
     pushd "${install_dir}"
 
-    echo "decompressing firecracker-${latest}-${arch}.tgz in ${install_dir}"
-    tar -xzf "firecracker-${latest}-${arch}.tgz"
-    rm "firecracker-${latest}-${arch}.tgz"
+    echo "decompressing firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz in ${install_dir}"
+    tar -xzf "firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
+    rm "firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
 
-    echo "linking firecracker ${latest}-${arch}"
-    sudo ln -sfn "${install_dir}/release-${latest}/firecracker-${latest}-${arch}" "${bin_dir}/firecracker-${latest}-${arch}"
-    sudo ln -sfn "${install_dir}/release-${latest}/jailer-${latest}-${arch}" "${bin_dir}/jailer-${latest}-${arch}"
-    sudo ln -sfn "${bin_dir}/firecracker-${latest}-${arch}" "${bin_dir}/firecracker"
-    sudo ln -sfn "${bin_dir}/jailer-${latest}-${arch}" "${bin_dir}/jailer"
+    echo "linking firecracker ${FIRECRACKER_VERSION}-${arch}"
+    sudo ln -sfn "${install_dir}/release-${FIRECRACKER_VERSION}/firecracker-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}"
+    sudo ln -sfn "${install_dir}/release-${FIRECRACKER_VERSION}/jailer-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/jailer-${FIRECRACKER_VERSION}-${arch}"
+    sudo ln -sfn "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/firecracker"
+    sudo ln -sfn "${bin_dir}/jailer-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/jailer"
 
-    echo "firecracker ${latest}-${arch}: ready"
+    echo "firecracker ${FIRECRACKER_VERSION}-${arch}: ready"
     firecracker --version | head -n1
     popd
 fi

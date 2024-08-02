@@ -5,6 +5,7 @@ import asyncio
 import websockets
 import subprocess
 import time
+import signal
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
@@ -26,10 +27,7 @@ def cleanup_existing_firecracker_processes():
     if os.path.exists(FIRECRACKER_SOCKET):
         os.remove(FIRECRACKER_SOCKET)
 
-def configure_firecracker(cpu_count, ram_size, cpu_quota):
-    # Clean up any existing processes and sockets
-    cleanup_existing_firecracker_processes()
-
+def start_firecracker_with_config(cpu_count, ram_size):
     # Start Firecracker with the config file
     firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
 
@@ -53,18 +51,21 @@ def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")
     parser.add_argument('--cpu', type=int, default=2, help='Number of vCPUs for the microVM')
     parser.add_argument('--ram', type=int, default=1024, help='Memory size in MiB for the microVM')
-    parser.add_argument('--cpu-quota', type=float, default=1.0, help='CPU quota for the microVM (e.g., 0.5 for half a CPU)')
     args = parser.parse_args()
 
-    configure_firecracker(args.cpu, args.ram, args.cpu_quota)
+    cleanup_existing_firecracker_processes()
 
     try:
+        start_firecracker_with_config(args.cpu, args.ram)
         asyncio.get_event_loop().run_until_complete(register_machine())
+
         # Keep the main thread alive
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         asyncio.get_event_loop().run_until_complete(deregister_machine())
+    finally:
+        cleanup_existing_firecracker_processes()
 
 if __name__ == "__main__":
     main()

@@ -46,15 +46,15 @@ ls -l "${install_dir}/release-v${FIRECRACKER_VERSION}"
 nested_dir="${install_dir}/release-v${FIRECRACKER_VERSION}/release-v${FIRECRACKER_VERSION}-${ARCH}"
 
 echo "Linking firecracker and jailer"
-if [ -f "${nested_dir}/firecracker" ]; then
-    sudo ln -sfn "${nested_dir}/firecracker" "${bin_dir}/firecracker"
+if [ -f "${nested_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
+    sudo ln -sfn "${nested_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/firecracker"
 else
     echo "Firecracker binary not found in ${nested_dir}"
     exit 1
 fi
 
-if [ -f "${nested_dir}/jailer" ]; then
-    sudo ln -sfn "${nested_dir}/jailer" "${bin_dir}/jailer"
+if [ -f "${nested_dir}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
+    sudo ln -sfn "${nested_dir}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/jailer"
 else
     echo "Jailer binary not found in ${nested_dir}"
     exit 1

@@ -40,8 +40,19 @@ tar -xzf "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz" -C "${
 rm "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz"
 
 echo "Linking firecracker and jailer"
-sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/firecracker"
-sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/jailer"
+if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker" ]; then
+    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker" "${bin_dir}/firecracker"
+else
+    echo "Firecracker binary not found in ${install_dir}/release-v${FIRECRACKER_VERSION}"
+    exit 1
+fi
+
+if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer" ]; then
+    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer" "${bin_dir}/jailer"
+else
+    echo "Jailer binary not found in ${install_dir}/release-v${FIRECRACKER_VERSION}"
+    exit 1
+fi
 
 echo "firecracker and jailer ${FIRECRACKER_VERSION}-${ARCH}: ready"
 ls -l "${bin_dir}/firecracker"
@@ -55,9 +66,9 @@ kernel_url="https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/${ARCH}/$
 rootfs_url="https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/${ARCH}/${ROOTFS_FILE}"
 ssh_key_url="https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/${ARCH}/ubuntu-22.04.id_rsa"
 
-wget -O "${KERNEL_FILE}" "${kernel_url}"
-wget -O "${ROOTFS_FILE}" "${rootfs_url}"
-wget -O "ubuntu-22.04.id_rsa" "${ssh_key_url}"
+wget -O "${KERNEL_FILE}" "${kernel_url}" || { echo "Failed to download kernel"; exit 1; }
+wget -O "${ROOTFS_FILE}" "${rootfs_url}" || { echo "Failed to download root filesystem"; exit 1; }
+wget -O "ubuntu-22.04.id_rsa" "${ssh_key_url}" || { echo "Failed to download SSH key"; exit 1; }
 chmod 400 "ubuntu-22.04.id_rsa"
 
 # Ensure the root filesystem is in place

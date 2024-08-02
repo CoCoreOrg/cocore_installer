@@ -1,9 +1,9 @@
 import os
-import requests
 import json
 import argparse
 import asyncio
 import websockets
+import requests_unixsocket
 import subprocess
 import time
 
@@ -36,14 +36,16 @@ def configure_firecracker(cpu_count, ram_size, cpu_quota):
     vm_config["machine-config"]["vcpu_count"] = cpu_count
     vm_config["machine-config"]["mem_size_mib"] = ram_size
 
+    session = requests_unixsocket.Session()
+
     # Configure the VM
     for endpoint, data in vm_config.items():
         if data is not None:  # Only send non-null data
-            response = requests.put(f'http://localhost/{endpoint}', json=data, headers={"Content-Type": "application/json"})
+            response = session.put(f'http+unix://{FIRECRACKER_SOCKET.replace("/", "%2F")}/{endpoint}', json=data, headers={"Content-Type": "application/json"})
             print(f'Endpoint: {endpoint}, Status: {response.status_code}, Response: {response.text}')
 
     # Start the VM
-    response = requests.put(f'http://localhost/actions', json={"action_type": "InstanceStart"}, headers={"Content-Type": "application/json"})
+    response = session.put(f'http+unix://{FIRECRACKER_SOCKET.replace("/", "%2F")}/actions', json={"action_type": "InstanceStart"}, headers={"Content-Type": "application/json"})
     print(f'Start VM, Status: {response.status_code}, Response: {response.text}')
 
 def main():

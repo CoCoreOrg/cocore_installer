@@ -12,6 +12,7 @@ setup(
         'requests',
         'cryptography',
         'websockets',
+        'requests-unixsocket',
     ],
     entry_points={
         'console_scripts': [

@@ -8,6 +8,7 @@ setup(
     install_requires=[
         "requests",
         "cryptography",
+        "websockets"
     ],
     entry_points={
         'console_scripts': [

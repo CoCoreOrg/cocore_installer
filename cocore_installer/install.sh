@@ -15,17 +15,18 @@ bin_dir=/usr/local/bin
 release_url="https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}"
 arch=$(uname -m)
 
-if [ -d "${install_dir}/release-v${FIRECRACKER_VERSION}" ]; then
+# Ensure necessary directories exist
+mkdir -p "${install_dir}/release-v${FIRECRACKER_VERSION}"
+
+if [ -f "${bin_dir}/firecracker" ]; then
     echo "Firecracker ${FIRECRACKER_VERSION} already installed"
 else
-    mkdir -p "${install_dir}/release-v${FIRECRACKER_VERSION}"
     download_url="${release_url}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
     echo "Attempting to download Firecracker from URL: ${download_url}"
     wget -O "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" "${download_url}"
-    pushd "${install_dir}/release-v${FIRECRACKER_VERSION}"
-
+    
     echo "Decompressing firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz in ${install_dir}/release-v${FIRECRACKER_VERSION}"
-    tar -xzf "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
+    tar -xzf "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" -C "${install_dir}/release-v${FIRECRACKER_VERSION}"
     rm "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
 
     echo "Linking firecracker and jailer"
@@ -37,7 +38,6 @@ else
     file "${bin_dir}/firecracker"
     file "${bin_dir}/jailer"
     "${bin_dir}/firecracker" --version | head -n1
-    popd
 fi
 
 # Ensure the root filesystem is in place

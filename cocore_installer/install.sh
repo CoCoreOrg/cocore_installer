@@ -43,7 +43,7 @@ echo "Contents of ${install_dir}/release-v${FIRECRACKER_VERSION}:"
 ls -l "${install_dir}/release-v${FIRECRACKER_VERSION}"
 
 # Handle nested directory structure
-nested_dir="${install_dir}/release-v${FIRECRACKER_VERSION}/release-${FIRECRACKER_VERSION}-${ARCH}"
+nested_dir="${install_dir}/release-v${FIRECRACKER_VERSION}/release-v${FIRECRACKER_VERSION}-${ARCH}"
 
 echo "Linking firecracker and jailer"
 if [ -f "${nested_dir}/firecracker" ]; then

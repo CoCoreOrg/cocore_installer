@@ -11,35 +11,6 @@ FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
 WEBSOCKET_SERVER = "ws://localhost:8765"
 
-def configure_cgroup(cpu_quota):
-    cgroup_name = "firecracker"
-    cgroup_path = f"/sys/fs/cgroup/cpu/{cgroup_name}"
-
-    # Check if cgroups v1 or v2 is in use
-    with open('/proc/cgroups', 'r') as f:
-        if 'cpu' not in f.read():
-            print("CPU cgroup is not available. Ensure that cgroups v1 is enabled.")
-            exit(1)
-
-    # Create cgroup with sudo
-    if not os.path.exists(cgroup_path):
-        subprocess.run(['sudo', 'mkdir', '-p', cgroup_path], check=True)
-
-    # Calculate CPU quota and period
-    cpu_period = 100000  # Default period is 100000 microseconds
-    cpu_quota_value = int(cpu_quota * cpu_period)
-
-    # Set CPU quota and period with sudo
-    subprocess.run(['sudo', 'sh', '-c', f'echo {cpu_period} > {os.path.join(cgroup_path, "cpu.cfs_period_us")}'], check=True)
-    subprocess.run(['sudo', 'sh', '-c', f'echo {cpu_quota_value} > {os.path.join(cgroup_path, "cpu.cfs_quota_us")}'], check=True)
-
-def add_pid_to_cgroup(pid):
-    cgroup_name = "firecracker"
-    cgroup_path = f"/sys/fs/cgroup/cpu/{cgroup_name}/tasks"
-
-    # Add PID to cgroup tasks with sudo
-    subprocess.run(['sudo', 'sh', '-c', f'echo {pid} > {cgroup_path}'], check=True)
-
 async def register_machine():
     async with websockets.connect(WEBSOCKET_SERVER) as websocket:
         await websocket.send(json.dumps({"action": "register"}))
@@ -56,10 +27,6 @@ def configure_firecracker(cpu_count, ram_size, cpu_quota):
     # Start Firecracker
     firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
 
-    # Apply cgroup settings
-    configure_cgroup(cpu_quota)
-    add_pid_to_cgroup(firecracker_process.pid)
-
     # Load VM configuration
     with open(os.path.join(os.path.dirname(__file__), 'firecracker_config.json')) as f:
         vm_config = json.load(f)
@@ -72,6 +39,14 @@ def configure_firecracker(cpu_count, ram_size, cpu_quota):
     for endpoint, data in vm_config.items():
         response = requests.put(f'http://localhost/{FIRECRACKER_SOCKET}/{endpoint}', json=data)
         print(response.status_code, response.text)
+
+    # Configure CPU quota
+    response = requests.patch(f'http://localhost/{FIRECRACKER_SOCKET}/machine-config', json={
+        "vcpu_count": cpu_count,
+        "mem_size_mib": ram_size,
+        "cpu_quota": cpu_quota
+    })
+    print(response.status_code, response.text)
 
     # Start the VM
     response = requests.put(f'http://localhost/{FIRECRACKER_SOCKET}/actions', json={"action_type": "InstanceStart"})

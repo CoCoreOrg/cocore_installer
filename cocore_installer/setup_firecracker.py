@@ -3,7 +3,6 @@ import json
 import argparse
 import asyncio
 import websockets
-import requests_unixsocket
 import subprocess
 import time
 
@@ -20,13 +19,6 @@ async def deregister_machine():
         await websocket.send(json.dumps({"action": "deregister"}))
 
 def configure_firecracker(cpu_count, ram_size, cpu_quota):
-    # Clean up any existing socket
-    if os.path.exists(FIRECRACKER_SOCKET):
-        os.remove(FIRECRACKER_SOCKET)
-
-    # Start Firecracker
-    firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
-
     # Load VM configuration
     config_path = os.path.join(os.path.dirname(__file__), 'firecracker_config.json')
     with open(config_path) as f:
@@ -36,18 +28,12 @@ def configure_firecracker(cpu_count, ram_size, cpu_quota):
     vm_config["machine-config"]["vcpu_count"] = cpu_count
     vm_config["machine-config"]["mem_size_mib"] = ram_size
 
-    session = requests_unixsocket.Session()
-    firecracker_api_url = f'http+unix://{FIRECRACKER_SOCKET.replace("/", "%2F")}'
+    # Save the updated configuration
+    with open(config_path, 'w') as f:
+        json.dump(vm_config, f, indent=4)
 
-    # Configure the VM
-    for endpoint, data in vm_config.items():
-        if data is not None:  # Only send non-null data
-            response = session.put(f'{firecracker_api_url}/{endpoint}', json=data, headers={"Content-Type": "application/json"})
-            print(f'Endpoint: {endpoint}, Status: {response.status_code}, Response: {response.text}')
-
-    # Start the VM
-    response = session.put(f'{firecracker_api_url}/actions', json={"action_type": "InstanceStart"}, headers={"Content-Type": "application/json"})
-    print(f'Start VM, Status: {response.status_code}, Response: {response.text}')
+    # Start Firecracker with the config file
+    subprocess.run([FIRECRACKER_BIN, '--config-file', config_path])
 
 def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")

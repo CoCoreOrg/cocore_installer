@@ -15,11 +15,22 @@ sudo mv firecracker /usr/local/bin/
 # Create root filesystem
 mkdir -p rootfs
 curl -Lo rootfs.tar.gz $ROOTFS_URL
-tar -xzvf rootfs.tar.gz -C rootfs
+if file rootfs.tar.gz | grep -q 'gzip compressed data'; then
+    tar -xzvf rootfs.tar.gz -C rootfs
+else
+    echo "Error: rootfs.tar.gz is not in gzip format."
+    exit 1
+fi
 rm rootfs.tar.gz
 
-# Create kernel image placeholder
+# Download kernel image
 curl -Lo vmlinux $KERNEL_URL
+if file vmlinux | grep -q 'Linux kernel x86 boot executable bzImage'; then
+    echo "Kernel downloaded successfully."
+else
+    echo "Error: vmlinux is not a valid kernel image."
+    exit 1
+fi
 
 # Copy task worker script to rootfs
 cp task_worker.py rootfs/root/task_worker.py

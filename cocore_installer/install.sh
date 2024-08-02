@@ -3,7 +3,7 @@
 set -e
 
 # Variables
-FIRECRACKER_VERSION="1.3.1"  # Update to the latest version
+FIRECRACKER_VERSION="1.8.0"  # Update to the latest version
 ROOTFS_FILE="rootfs.ext4"
 KERNEL_FILE="vmlinux"
 MOUNT_POINT="mnt"

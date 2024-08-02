@@ -5,7 +5,7 @@ set -e
 # Variables
 FIRECRACKER_VERSION="1.8.0"
 ROOTFS_FILE="ubuntu-22.04.ext4"
-KERNEL_FILE="vmlinux-5.10"
+KERNEL_FILE="vmlinux"
 ARCH=$(uname -m)
 MOUNT_POINT="mnt"
 TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"  # Correct path to task_worker.py
@@ -68,14 +68,11 @@ file "${bin_dir}/jailer"
 
 # Download Kernel and Root Filesystem
 echo "Downloading kernel and root filesystem..."
-kernel_url="https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/${ARCH}/${KERNEL_FILE}"
-rootfs_url="https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/${ARCH}/${ROOTFS_FILE}"
-ssh_key_url="https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/${ARCH}/ubuntu-22.04.id_rsa"
+kernel_url="https://s3.amazonaws.com/spec.ccfc.min/img/hello/kernel/hello-vmlinux.bin"
+rootfs_url="https://s3.amazonaws.com/spec.ccfc.min/img/hello/fsfiles/hello-rootfs.ext4"
 
 wget -O "${KERNEL_FILE}" "${kernel_url}" || { echo "Failed to download kernel"; exit 1; }
 wget -O "${ROOTFS_FILE}" "${rootfs_url}" || { echo "Failed to download root filesystem"; exit 1; }
-wget -O "ubuntu-22.04.id_rsa" "${ssh_key_url}" || { echo "Failed to download SSH key"; exit 1; }
-chmod 400 "ubuntu-22.04.id_rsa"
 
 # Ensure the root filesystem is in place
 if [ ! -f $ROOTFS_FILE ]; then

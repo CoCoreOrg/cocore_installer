@@ -19,21 +19,24 @@ if [ -d "${install_dir}/release-v${FIRECRACKER_VERSION}" ]; then
     echo "Firecracker ${FIRECRACKER_VERSION} already installed"
 else
     mkdir -p "${install_dir}"
-    echo "downloading firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz to ${install_dir}"
+    echo "Downloading firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz to ${install_dir}"
     curl -o "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" -L "${release_url}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
     pushd "${install_dir}"
 
-    echo "decompressing firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz in ${install_dir}"
+    echo "Decompressing firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz in ${install_dir}"
     tar -xzf "firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
     rm "firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
 
-    echo "linking firecracker ${FIRECRACKER_VERSION}-${arch}"
-    sudo ln -sfn "${install_dir}/release-${FIRECRACKER_VERSION}/firecracker-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}"
-    sudo ln -sfn "${install_dir}/release-${FIRECRACKER_VERSION}/jailer-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/jailer-${FIRECRACKER_VERSION}-${arch}"
+    echo "Linking firecracker ${FIRECRACKER_VERSION}-${arch}"
+    sudo ln -sfn "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}"
+    sudo ln -sfn "${install_dir}/jailer-v${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/jailer-${FIRECRACKER_VERSION}-${arch}"
     sudo ln -sfn "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/firecracker"
     sudo ln -sfn "${bin_dir}/jailer-${FIRECRACKER_VERSION}-${arch}" "${bin_dir}/jailer"
 
     echo "firecracker ${FIRECRACKER_VERSION}-${arch}: ready"
+    ls -l "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}"
+    file "${bin_dir}/firecracker-${FIRECRACKER_VERSION}-${arch}"
+    file "${bin_dir}/firecracker"
     firecracker --version | head -n1
     popd
 fi

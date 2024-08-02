@@ -21,7 +21,7 @@ else
     mkdir -p "${install_dir}"
     download_url="${release_url}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
     echo "Attempting to download Firecracker from URL: ${download_url}"
-    curl -o "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" -L "${download_url}"
+    wget -O "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" "${download_url}"
     pushd "${install_dir}"
 
     echo "Decompressing firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz in ${install_dir}"

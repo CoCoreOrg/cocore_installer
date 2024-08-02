@@ -15,9 +15,15 @@ def configure_cgroup(cpu_quota):
     cgroup_name = "firecracker"
     cgroup_path = f"/sys/fs/cgroup/cpu/{cgroup_name}"
 
-    # Create cgroup
+    # Check if cgroups v1 or v2 is in use
+    with open('/proc/cgroups', 'r') as f:
+        if 'cpu' not in f.read():
+            print("CPU cgroup is not available. Ensure that cgroups v1 is enabled.")
+            exit(1)
+
+    # Create cgroup with sudo
     if not os.path.exists(cgroup_path):
-        os.makedirs(cgroup_path)
+        subprocess.run(['sudo', 'mkdir', '-p', cgroup_path], check=True)
 
     # Calculate CPU quota and period
     cpu_period = 100000  # Default period is 100000 microseconds

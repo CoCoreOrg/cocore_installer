@@ -28,7 +28,8 @@ def configure_firecracker(cpu_count, ram_size, cpu_quota):
     firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
 
     # Load VM configuration
-    with open(os.path.join(os.path.dirname(__file__), 'firecracker_config.json')) as f:
+    config_path = os.path.join(os.path.dirname(__file__), 'firecracker_config.json')
+    with open(config_path) as f:
         vm_config = json.load(f)
 
     # Update VM configuration with CPU and RAM limits
@@ -37,25 +38,18 @@ def configure_firecracker(cpu_count, ram_size, cpu_quota):
 
     # Configure the VM
     for endpoint, data in vm_config.items():
-        response = requests.put(f'http://localhost/{FIRECRACKER_SOCKET}/{endpoint}', json=data)
-        print(response.status_code, response.text)
-
-    # Configure CPU quota
-    response = requests.patch(f'http://localhost/{FIRECRACKER_SOCKET}/machine-config', json={
-        "vcpu_count": cpu_count,
-        "mem_size_mib": ram_size,
-        "cpu_quota": cpu_quota
-    })
-    print(response.status_code, response.text)
+        if data is not None:  # Only send non-null data
+            response = requests.put(f'http://localhost/{endpoint}', json=data, headers={"Content-Type": "application/json"})
+            print(f'Endpoint: {endpoint}, Status: {response.status_code}, Response: {response.text}')
 
     # Start the VM
-    response = requests.put(f'http://localhost/{FIRECRACKER_SOCKET}/actions', json={"action_type": "InstanceStart"})
-    print(response.status_code, response.text)
+    response = requests.put(f'http://localhost/actions', json={"action_type": "InstanceStart"}, headers={"Content-Type": "application/json"})
+    print(f'Start VM, Status: {response.status_code}, Response: {response.text}')
 
 def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")
     parser.add_argument('--cpu', type=int, default=2, help='Number of vCPUs for the microVM')
-    parser.add_argument('--ram', type=int, default=512, help='Memory size in MiB for the microVM')
+    parser.add_argument('--ram', type=int, default=1024, help='Memory size in MiB for the microVM')
     parser.add_argument('--cpu-quota', type=float, default=1.0, help='CPU quota for the microVM (e.g., 0.5 for half a CPU)')
     args = parser.parse_args()
 

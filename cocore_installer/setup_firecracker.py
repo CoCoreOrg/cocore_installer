@@ -5,7 +5,6 @@ import asyncio
 import websockets
 import subprocess
 import time
-import signal
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
@@ -22,14 +21,16 @@ async def deregister_machine():
 def cleanup_existing_firecracker_processes():
     # Kill all existing Firecracker processes
     subprocess.run(['pkill', '-f', FIRECRACKER_BIN])
-
     # Remove any existing socket
     if os.path.exists(FIRECRACKER_SOCKET):
         os.remove(FIRECRACKER_SOCKET)
 
 def start_firecracker_with_config(cpu_count, ram_size):
-    # Start Firecracker with the config file
+    # Start Firecracker
     firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
+
+    # Wait a bit for Firecracker to start
+    time.sleep(1)
 
     # Load VM configuration
     config_path = os.path.join(os.path.dirname(__file__), 'firecracker_config.json')
@@ -40,12 +41,18 @@ def start_firecracker_with_config(cpu_count, ram_size):
     vm_config["machine-config"]["vcpu_count"] = cpu_count
     vm_config["machine-config"]["mem_size_mib"] = ram_size
 
-    # Save the updated configuration
-    with open(config_path, 'w') as f:
-        json.dump(vm_config, f, indent=4)
+    # Configure the VM using requests_unixsocket
+    import requests_unixsocket
+    session = requests_unixsocket.Session()
 
-    # Start Firecracker with the config file
-    subprocess.run([FIRECRACKER_BIN, '--config-file', config_path])
+    for endpoint, data in vm_config.items():
+        if data is not None:  # Only send non-null data
+            response = session.put(f'http+unix://{FIRECRACKER_SOCKET.replace("/", "%2F")}/{endpoint}', json=data, headers={"Content-Type": "application/json"})
+            print(f'Endpoint: {endpoint}, Status: {response.status_code}, Response: {response.text}')
+
+    # Start the VM
+    response = session.put(f'http+unix://{FIRECRACKER_SOCKET.replace("/", "%2F")}/actions', json={"action_type": "InstanceStart"}, headers={"Content-Type": "application/json"})
+    print(f'Start VM, Status: {response.status_code}, Response: {response.text}')
 
 def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")

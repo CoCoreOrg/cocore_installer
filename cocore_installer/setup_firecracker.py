@@ -18,7 +18,21 @@ async def deregister_machine():
     async with websockets.connect(WEBSOCKET_SERVER) as websocket:
         await websocket.send(json.dumps({"action": "deregister"}))
 
+def cleanup_existing_firecracker_processes():
+    # Kill all existing Firecracker processes
+    subprocess.run(['pkill', '-f', FIRECRACKER_BIN])
+
+    # Remove any existing socket
+    if os.path.exists(FIRECRACKER_SOCKET):
+        os.remove(FIRECRACKER_SOCKET)
+
 def configure_firecracker(cpu_count, ram_size, cpu_quota):
+    # Clean up any existing processes and sockets
+    cleanup_existing_firecracker_processes()
+
+    # Start Firecracker with the config file
+    firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
+
     # Load VM configuration
     config_path = os.path.join(os.path.dirname(__file__), 'firecracker_config.json')
     with open(config_path) as f:

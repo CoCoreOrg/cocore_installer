@@ -19,8 +19,9 @@ if [ -d "${install_dir}/release-v${FIRECRACKER_VERSION}" ]; then
     echo "Firecracker ${FIRECRACKER_VERSION} already installed"
 else
     mkdir -p "${install_dir}"
-    echo "Downloading firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz to ${install_dir}"
-    curl -o "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" -L "${release_url}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
+    download_url="${release_url}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz"
+    echo "Attempting to download Firecracker from URL: ${download_url}"
+    curl -o "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz" -L "${download_url}"
     pushd "${install_dir}"
 
     echo "Decompressing firecracker-v${FIRECRACKER_VERSION}-${arch}.tgz in ${install_dir}"
@@ -44,13 +45,17 @@ fi
 # Ensure the root filesystem is in place
 if [ ! -f $ROOTFS_FILE ]; then
     echo "Root filesystem not found. Downloading..."
-    wget https://s3.amazonaws.com/spec.ccfc.min/img/hello/fsfiles/hello-rootfs.ext4 -O rootfs.ext4
+    rootfs_url="https://s3.amazonaws.com/spec.ccfc.min/img/hello/fsfiles/hello-rootfs.ext4"
+    echo "Attempting to download root filesystem from URL: ${rootfs_url}"
+    wget $rootfs_url -O rootfs.ext4
 fi
 
 # Ensure the kernel is in place
 if [ ! -f $KERNEL_FILE ]; then
     echo "Kernel image not found. Downloading..."
-    wget https://s3.amazonaws.com/spec.ccfc.min/img/hello/kernel/hello-vmlinux.bin -O vmlinux
+    kernel_url="https://s3.amazonaws.com/spec.ccfc.min/img/hello/kernel/hello-vmlinux.bin"
+    echo "Attempting to download kernel from URL: ${kernel_url}"
+    wget $kernel_url -O vmlinux
 fi
 
 # Check if already mounted and unmount if necessary

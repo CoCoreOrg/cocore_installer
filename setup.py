@@ -9,7 +9,7 @@ setup(
         'cocore_installer': ['firecracker_config.json'],
     },
     install_requires=[
-        'requests',
+        'requests < 2.32.0',
         'cryptography',
         'websockets',
         'requests-unixsocket',

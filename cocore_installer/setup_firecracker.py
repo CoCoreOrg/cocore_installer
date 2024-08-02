@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import websockets
 import subprocess
+import time
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
@@ -22,18 +23,16 @@ def configure_cgroup(cpu_quota):
     cpu_period = 100000  # Default period is 100000 microseconds
     cpu_quota_value = int(cpu_quota * cpu_period)
 
-    # Set CPU quota and period
-    with open(os.path.join(cgroup_path, "cpu.cfs_period_us"), "w") as f:
-        f.write(str(cpu_period))
-    with open(os.path.join(cgroup_path, "cpu.cfs_quota_us"), "w") as f:
-        f.write(str(cpu_quota_value))
+    # Set CPU quota and period with sudo
+    subprocess.run(['sudo', 'sh', '-c', f'echo {cpu_period} > {os.path.join(cgroup_path, "cpu.cfs_period_us")}'], check=True)
+    subprocess.run(['sudo', 'sh', '-c', f'echo {cpu_quota_value} > {os.path.join(cgroup_path, "cpu.cfs_quota_us")}'], check=True)
 
 def add_pid_to_cgroup(pid):
     cgroup_name = "firecracker"
     cgroup_path = f"/sys/fs/cgroup/cpu/{cgroup_name}/tasks"
 
-    with open(cgroup_path, "a") as f:
-        f.write(str(pid))
+    # Add PID to cgroup tasks with sudo
+    subprocess.run(['sudo', 'sh', '-c', f'echo {pid} > {cgroup_path}'], check=True)
 
 async def register_machine():
     async with websockets.connect(WEBSOCKET_SERVER) as websocket:

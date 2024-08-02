@@ -39,16 +39,19 @@ echo "Decompressing firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz in ${install
 tar -xzf "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz" -C "${install_dir}/release-v${FIRECRACKER_VERSION}"
 rm "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz"
 
+echo "Contents of ${install_dir}/release-v${FIRECRACKER_VERSION}:"
+ls -l "${install_dir}/release-v${FIRECRACKER_VERSION}"
+
 echo "Linking firecracker and jailer"
-if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker" ]; then
-    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker" "${bin_dir}/firecracker"
+if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
+    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/firecracker"
 else
     echo "Firecracker binary not found in ${install_dir}/release-v${FIRECRACKER_VERSION}"
     exit 1
 fi
 
-if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer" ]; then
-    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer" "${bin_dir}/jailer"
+if [ -f "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
+    sudo ln -sfn "${install_dir}/release-v${FIRECRACKER_VERSION}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/jailer"
 else
     echo "Jailer binary not found in ${install_dir}/release-v${FIRECRACKER_VERSION}"
     exit 1

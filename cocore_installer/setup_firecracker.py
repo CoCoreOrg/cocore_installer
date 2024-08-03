@@ -48,16 +48,23 @@ def start_firecracker_with_config(cpu_count, ram_size):
 
     for drive in vm_config.get("drives", []):
         if not drive.get("drive_id"):
-            drive["drive_id"] = "rootfs"
+            drive["drive_id"] = "rootfs"  # Default to "rootfs" if no ID is provided
 
     for i, iface in enumerate(vm_config.get("network-interfaces", [])):
         if not iface.get("iface_id"):
             iface["iface_id"] = f"eth{i}"
 
-    for endpoint, data in vm_config.items():
-        if data is not None:
-            send_firecracker_request(endpoint, data)
+    # Configure the VM
+    send_firecracker_request('boot-source', vm_config["boot-source"])
+    for drive in vm_config.get("drives", []):
+        send_firecracker_request('drives', drive)
+    send_firecracker_request('machine-config', vm_config["machine-config"])
 
+    # Ensure each network interface has a unique ID
+    for iface in vm_config.get("network-interfaces", []):
+        send_firecracker_request('network-interfaces', iface)
+
+    # Start the VM
     send_firecracker_request('actions', {"action_type": "InstanceStart"})
 
 def main():

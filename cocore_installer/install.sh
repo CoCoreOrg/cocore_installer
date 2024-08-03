@@ -26,7 +26,7 @@ fi
 
 # Download firectl
 echo "Downloading firectl..."
-curl -L "https://github.com/firecracker-microvm/firectl/releases/download/v${FIRECTL_VERSION}/firectl-${FIRECTL_VERSION}-${ARCH}" -o "${FIRECTL_BIN}"
+curl -L "https://github.com/firecracker-microvm/firectl/releases/download/v${FIRECTL_VERSION}/firectl-v${FIRECTL_VERSION}-${ARCH}" -o "${FIRECTL_BIN}"
 chmod +x "${FIRECTL_BIN}"
 
 # Download Kernel and Root Filesystem

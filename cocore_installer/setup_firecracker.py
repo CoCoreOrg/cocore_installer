@@ -29,7 +29,10 @@ def start_firecracker_with_firectl(cpu_count, ram_size):
         '--ncpus', str(cpu_count),
         '--memory', str(ram_size)
     ]
-    subprocess.Popen(cmd)
+    try:
+        subprocess.Popen(cmd, executable=FIRECTL_BIN)
+    except OSError as e:
+        print(f"Failed to start firectl: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")

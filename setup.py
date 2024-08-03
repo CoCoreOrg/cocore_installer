@@ -13,7 +13,8 @@ setup(
         'requests-unixsocket>=0.2.0',
         'six>=1.15.0',
         'urllib3>=1.26.5',
-        'cryptography'
+        'cryptography',
+        'websockets'
     ],
     entry_points={
         'console_scripts': [

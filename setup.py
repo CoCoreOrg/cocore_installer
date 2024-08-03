@@ -12,7 +12,7 @@ setup(
         'requests == 2.24.0',
         'requests-unixsocket>=0.2.0',
         'six>=1.15.0',
-        'urllib3>=1.26.5',
+        'urllib3',
         'cryptography',
         'websockets'
     ],

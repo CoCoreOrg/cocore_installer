@@ -10,7 +10,7 @@ ARCH=$(uname -m)
 MOUNT_POINT="mnt"
 TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"  # Correct path to task_worker.py
 API_SOCKET="/tmp/firecracker.socket"
-LOGFILE="./firecracker.log"
+LOGFILE="./cocore_installer/firecracker.log"
 
 # Prerequisites
 echo "Checking KVM module..."

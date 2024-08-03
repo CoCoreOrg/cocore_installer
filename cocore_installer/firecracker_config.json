@@ -6,14 +6,11 @@
   "drives": [
     {
       "drive_id": "rootfs",
-      "partuuid": null,
+      "path_on_host": "ubuntu-22.04.ext4",
       "is_root_device": true,
-      "cache_type": "Unsafe",
       "is_read_only": false,
-      "path_on_host": "bionic.rootfs.ext4",
-      "io_engine": "Sync",
-      "rate_limiter": null,
-      "socket": null
+      "cache_type": "Unsafe",
+      "io_engine": "Sync"
     }
   ],
   "machine-config": {

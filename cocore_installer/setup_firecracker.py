@@ -56,7 +56,7 @@ def start_firecracker_with_config(cpu_count, ram_size):
     # Ensure each drive has a unique ID
     for drive in vm_config.get("drives", []):
         if not drive.get("drive_id"):
-            drive["drive_id"] = "rootfs"  # Default to "rootfs" if no ID is provided
+            drive["drive_id"] = f"drive_{time.time()}"
 
     # Ensure each network interface has a unique ID
     for i, iface in enumerate(vm_config.get("network-interfaces", [])):

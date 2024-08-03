@@ -55,12 +55,12 @@ def start_firecracker_with_config(cpu_count, ram_size):
 
     # Ensure each drive has a unique ID
     for drive in vm_config.get("drives", []):
-        if drive.get("drive_id") is None:
+        if not drive.get("drive_id"):
             drive["drive_id"] = "rootfs"  # Default to "rootfs" if no ID is provided
 
     # Ensure each network interface has a unique ID
     for i, iface in enumerate(vm_config.get("network-interfaces", [])):
-        if iface.get("iface_id") is None:
+        if not iface.get("iface_id"):
             iface["iface_id"] = f"eth{i}"
 
     # Configure the VM
@@ -81,13 +81,19 @@ def main():
 
     try:
         start_firecracker_with_config(args.cpu, args.ram)
-        asyncio.get_event_loop().run_until_complete(register_machine())
 
+        # Check if the WebSocket server is running
+        print("Checking WebSocket server...")
+        time.sleep(5)  # Give it some time to start
+        asyncio.get_event_loop().run_until_complete(register_machine())
+        
         # Keep the main thread alive
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         asyncio.get_event_loop().run_until_complete(deregister_machine())
+    except Exception as e:
+        print(f"Error: {e}")
     finally:
         cleanup_existing_firecracker_processes()
 

@@ -43,10 +43,18 @@ curl -Lo /usr/local/bin/firecracker https://github.com/firecracker-microvm/firec
 chmod +x /usr/local/bin/firecracker
 
 # Build firectl using Docker
+echo "Cloning firectl repository..."
+git clone https://github.com/firecracker-microvm/firectl.git
+cd firectl
+
 echo "Building firectl using Docker..."
-docker run --rm -v "$(pwd)":/usr/src/firectl -w /usr/src/firectl golang:1.14 make build-in-docker
+docker run --rm -v "$(pwd)":/usr/src/firectl -w /usr/src/firectl golang:1.14 go build -o firectl .
+
+echo "Moving firectl binary to /usr/local/bin..."
 mv firectl /usr/local/bin/firectl
 chmod +x /usr/local/bin/firectl
+cd ..
+rm -rf firectl
 
 # Download Kernel and Root Filesystem
 echo "Downloading kernel and root filesystem..."

@@ -34,7 +34,6 @@ def send_firecracker_request(endpoint, data):
         f'http://localhost/{endpoint}'
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    import code;code.interact(local=dict(globals(), **locals())) 
     print(f'Endpoint: {endpoint}, Status: {result.returncode}, Response: {result.stdout.strip()}')
 
 def start_firecracker_with_config(cpu_count, ram_size):

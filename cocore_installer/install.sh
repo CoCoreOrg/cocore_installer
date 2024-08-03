@@ -24,6 +24,19 @@ if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
     sudo setfacl -m u:${USER}:rw /dev/kvm || (sudo usermod -aG kvm ${USER} && echo "Access granted. Please re-login for the group changes to take effect." && exit 1)
 fi
 
+# Install Docker if not already installed
+if ! command -v docker &> /dev/null; then
+    echo "Docker not found. Installing Docker..."
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    sudo apt-get update
+    sudo apt-get install -y docker-ce
+    sudo systemctl start docker
+    sudo systemctl enable docker
+fi
+
 # Download Firecracker binary
 echo "Downloading Firecracker..."
 curl -Lo /usr/local/bin/firecracker https://github.com/firecracker-microvm/firecracker/releases/download/v1.8.0/firecracker-v1.8.0-${ARCH}

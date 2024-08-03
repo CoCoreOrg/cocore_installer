@@ -3,11 +3,12 @@
 set -e
 
 # Variables
-FIRECTL_VERSION="0.1.1"
-FIRECTL_BIN="/usr/local/bin/firectl"
+FIRECRACKER_VERSION="1.8.0"
+ROOTFS_FILE="ubuntu-22.04.ext4"
+KERNEL_FILE="vmlinux"
 ARCH=$(uname -m)
 MOUNT_POINT="mnt"
-TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"  # Correct path to task_worker.py
+TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"
 API_SOCKET="/tmp/firecracker.socket"
 LOGFILE="./cocore_installer/firecracker.log"
 
@@ -24,56 +25,65 @@ if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
     sudo setfacl -m u:${USER}:rw /dev/kvm || (sudo usermod -aG kvm ${USER} && echo "Access granted. Please re-login for the group changes to take effect." && exit 1)
 fi
 
-# Install Docker if not already installed
-if ! command -v docker &> /dev/null; then
-    echo "Docker not found. Installing Docker..."
-    sudo apt-get update
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-    sudo apt-get update
-    sudo apt-get install -y docker-ce
-    sudo systemctl start docker
-    sudo systemctl enable docker
+# Download Firecracker and Jailer
+install_dir="/firecracker/releases"
+bin_dir="/usr/local/bin"
+release_url="https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}"
+
+mkdir -p "${install_dir}/release-v${FIRECRACKER_VERSION}"
+download_url="${release_url}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz"
+echo "Attempting to download Firecracker from URL: ${download_url}"
+wget -O "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz" "${download_url}"
+
+echo "Decompressing firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz in ${install_dir}/release-v${FIRECRACKER_VERSION}"
+tar -xzf "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz" -C "${install_dir}/release-v${FIRECRACKER_VERSION}"
+rm "${install_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}.tgz"
+
+echo "Contents of ${install_dir}/release-v${FIRECRACKER_VERSION}:"
+ls -l "${install_dir}/release-v${FIRECRACKER_VERSION}"
+
+# Handle nested directory structure
+nested_dir="${install_dir}/release-v${FIRECRACKER_VERSION}/release-v${FIRECRACKER_VERSION}-${ARCH}"
+
+echo "Linking firecracker and jailer"
+if [ -f "${nested_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
+    sudo ln -sfn "${nested_dir}/firecracker-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/firecracker"
+else
+    echo "Firecracker binary not found in ${nested_dir}"
+    exit 1
 fi
 
-# Download Firecracker binary
-echo "Downloading Firecracker..."
-curl -Lo /usr/local/bin/firecracker https://github.com/firecracker-microvm/firecracker/releases/download/v1.8.0/firecracker-v1.8.0-${ARCH}
-chmod +x /usr/local/bin/firecracker
+if [ -f "${nested_dir}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" ]; then
+    sudo ln -sfn "${nested_dir}/jailer-v${FIRECRACKER_VERSION}-${ARCH}" "${bin_dir}/jailer"
+else
+    echo "Jailer binary not found in ${nested_dir}"
+    exit 1
+fi
 
-# Build firectl using Docker
-echo "Cloning firectl repository..."
-git clone https://github.com/firecracker-microvm/firectl.git
-cd firectl
-
-echo "Building firectl using Docker..."
-docker run --rm -v "$(pwd)":/usr/src/firectl -w /usr/src/firectl golang:1.14 go build -o firectl .
-
-echo "Moving firectl binary to /usr/local/bin..."
-mv firectl /usr/local/bin/firectl
-chmod +x /usr/local/bin/firectl
-cd ..
-rm -rf firectl
+echo "firecracker and jailer ${FIRECRACKER_VERSION}-${ARCH}: ready"
+ls -l "${bin_dir}/firecracker"
+file "${bin_dir}/firecracker"
+file "${bin_dir}/jailer"
+"${bin_dir}/firecracker" --version | head -n1
 
 # Download Kernel and Root Filesystem
 echo "Downloading kernel and root filesystem..."
 kernel_url="https://s3.amazonaws.com/spec.ccfc.min/img/hello/kernel/hello-vmlinux.bin"
 rootfs_url="https://s3.amazonaws.com/spec.ccfc.min/img/hello/fsfiles/hello-rootfs.ext4"
 
-wget -O "vmlinux" "${kernel_url}" || { echo "Failed to download kernel"; exit 1; }
-wget -O "rootfs.ext4" "${rootfs_url}" || { echo "Failed to download root filesystem"; exit 1; }
+wget -O "${KERNEL_FILE}" "${kernel_url}" || { echo "Failed to download kernel"; exit 1; }
+wget -O "${ROOTFS_FILE}" "${rootfs_url}" || { echo "Failed to download root filesystem"; exit 1; }
 
 # Ensure the root filesystem is in place
-if [ ! -f rootfs.ext4 ]; then
+if [ ! -f $ROOTFS_FILE ]; then
     echo "Root filesystem not found. Downloading..."
-    wget $rootfs_url -O rootfs.ext4
+    wget $rootfs_url -O $ROOTFS_FILE
 fi
 
 # Ensure the kernel is in place
-if [ ! -f vmlinux ]; then
+if [ ! -f $KERNEL_FILE ]; then
     echo "Kernel image not found. Downloading..."
-    wget $kernel_url -O vmlinux
+    wget $kernel_url -O $KERNEL_FILE
 fi
 
 # Check if already mounted and unmount if necessary
@@ -84,7 +94,7 @@ fi
 
 # Copy task worker script to rootfs
 mkdir -p $MOUNT_POINT
-sudo mount -o loop rootfs.ext4 $MOUNT_POINT
+sudo mount -o loop $ROOTFS_FILE $MOUNT_POINT
 sudo cp $TASK_WORKER_SCRIPT $MOUNT_POINT/root/task_worker.py
 echo -e '#!/bin/sh\npython3 /root/task_worker.py' | sudo tee $MOUNT_POINT/root/init.sh
 sudo chmod +x $MOUNT_POINT/root/init.sh

@@ -20,9 +20,7 @@ async def deregister_machine():
         await websocket.send(json.dumps({"action": "deregister"}))
 
 def cleanup_existing_firecracker_processes():
-    # Kill all existing Firecracker processes
     subprocess.run(['pkill', '-f', FIRECRACKER_BIN])
-    # Remove any existing socket
     if os.path.exists(FIRECRACKER_SOCKET):
         os.remove(FIRECRACKER_SOCKET)
 
@@ -39,36 +37,27 @@ def send_firecracker_request(endpoint, data):
     print(f'Endpoint: {endpoint}, Status: {result.returncode}, Response: {result.stdout.strip()}')
 
 def start_firecracker_with_config(cpu_count, ram_size):
-    # Start Firecracker
     firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
-
-    # Wait a bit for Firecracker to start
     time.sleep(1)
 
-    # Load VM configuration
     with open(FIRECRACKER_CONFIG_PATH) as f:
         vm_config = json.load(f)
 
-    # Update VM configuration with CPU and RAM limits
     vm_config["machine-config"]["vcpu_count"] = cpu_count
     vm_config["machine-config"]["mem_size_mib"] = ram_size
 
-    # Ensure each drive has a unique ID
     for drive in vm_config.get("drives", []):
         if not drive.get("drive_id"):
-            drive["drive_id"] = f"drive_{time.time()}"
+            drive["drive_id"] = "rootfs"
 
-    # Ensure each network interface has a unique ID
     for i, iface in enumerate(vm_config.get("network-interfaces", [])):
         if not iface.get("iface_id"):
             iface["iface_id"] = f"eth{i}"
 
-    # Configure the VM
     for endpoint, data in vm_config.items():
-        if data is not None:  # Only send non-null data
+        if data is not None:
             send_firecracker_request(endpoint, data)
 
-    # Start the VM
     send_firecracker_request('actions', {"action_type": "InstanceStart"})
 
 def main():
@@ -81,13 +70,10 @@ def main():
 
     try:
         start_firecracker_with_config(args.cpu, args.ram)
-
-        # Check if the WebSocket server is running
         print("Checking WebSocket server...")
-        time.sleep(5)  # Give it some time to start
+        time.sleep(5)
         asyncio.get_event_loop().run_until_complete(register_machine())
-        
-        # Keep the main thread alive
+
         while True:
             time.sleep(1)
     except KeyboardInterrupt:

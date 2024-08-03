@@ -10,7 +10,7 @@ setup(
     },
     install_requires=[
         'requests == 2.24.0',
-        'urllib3==2.2.2',
+        'urllib3<1.26',
         'cryptography',
         'websockets',
         'requests-unixsocket == 0.2.0',

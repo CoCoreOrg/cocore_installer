@@ -56,8 +56,14 @@ def start_firecracker_with_config(cpu_count, ram_size):
 
     # Configure the VM
     send_firecracker_request('boot-source', vm_config["boot-source"])
-    for drive in vm_config.get("drives", []):
-        send_firecracker_request('drives', drive)
+    send_firecracker_request('drives/rootfs', {
+        "drive_id": "rootfs",
+        "path_on_host": "ubuntu-22.04.ext4",
+        "is_root_device": True,
+        "is_read_only": False,
+    })
+    # for drive in vm_config.get("drives", []):
+    #     send_firecracker_request('drives', drive)
     send_firecracker_request('machine-config', vm_config["machine-config"])
 
     # Ensure each network interface has a unique ID

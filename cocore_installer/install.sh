@@ -24,10 +24,16 @@ if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
     sudo setfacl -m u:${USER}:rw /dev/kvm || (sudo usermod -aG kvm ${USER} && echo "Access granted. Please re-login for the group changes to take effect." && exit 1)
 fi
 
-# Download firectl
-echo "Downloading firectl..."
-curl -L "https://github.com/firecracker-microvm/firectl/releases/download/v${FIRECTL_VERSION}/firectl-v${FIRECTL_VERSION}-${ARCH}" -o "${FIRECTL_BIN}"
-chmod +x "${FIRECTL_BIN}"
+# Download Firecracker binary
+echo "Downloading Firecracker..."
+curl -Lo /usr/local/bin/firecracker https://github.com/firecracker-microvm/firecracker/releases/download/v1.8.0/firecracker-v1.8.0-${ARCH}
+chmod +x /usr/local/bin/firecracker
+
+# Build firectl using Docker
+echo "Building firectl using Docker..."
+docker run --rm -v "$(pwd)":/usr/src/firectl -w /usr/src/firectl golang:1.14 make build-in-docker
+mv firectl /usr/local/bin/firectl
+chmod +x /usr/local/bin/firectl
 
 # Download Kernel and Root Filesystem
 echo "Downloading kernel and root filesystem..."

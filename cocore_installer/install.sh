@@ -8,7 +8,7 @@ ROOTFS_FILE="ubuntu-22.04.ext4"
 KERNEL_FILE="vmlinux"
 ARCH=$(uname -m)
 MOUNT_POINT="mnt"
-TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"  # Correct path to task_worker.py
+TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"
 API_SOCKET="/tmp/firecracker.socket"
 LOGFILE="./cocore_installer/firecracker.log"
 
@@ -77,13 +77,13 @@ wget -O "${ROOTFS_FILE}" "${rootfs_url}" || { echo "Failed to download root file
 # Ensure the root filesystem is in place
 if [ ! -f $ROOTFS_FILE ]; then
     echo "Root filesystem not found. Downloading..."
-    wget $rootfs_url -O rootfs.ext4
+    wget $rootfs_url -O $ROOTFS_FILE
 fi
 
 # Ensure the kernel is in place
 if [ ! -f $KERNEL_FILE ]; then
     echo "Kernel image not found. Downloading..."
-    wget $kernel_url -O vmlinux
+    wget $kernel_url -O $KERNEL_FILE
 fi
 
 # Check if already mounted and unmount if necessary

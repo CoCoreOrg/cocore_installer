@@ -15,7 +15,6 @@ setup(
         'urllib3',
         'cryptography',
         'websockets',
-        'requests-unixsocket',
         'tornado',
     ],
     entry_points={

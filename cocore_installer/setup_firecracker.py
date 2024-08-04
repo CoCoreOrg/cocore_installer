@@ -6,7 +6,6 @@ import websockets
 import subprocess
 import time
 import urllib
-import requests_unixsocket
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
@@ -14,8 +13,6 @@ WEBSOCKET_SERVER = "ws://localhost:8765"
 FIRECRACKER_CONFIG_PATH = '/root/cocore_installer/cocore_installer/firecracker_config.json'
 TAP_DEVICE = "tap0"
 TAP_IP = "172.16.0.1"
-
-session = requests_unixsocket.Session()
 
 async def register_machine():
     return
@@ -35,10 +32,15 @@ def cleanup_existing_firecracker_processes():
         os.remove(FIRECRACKER_SOCKET)
 
 def send_firecracker_request(endpoint, data):
-    result = session.put(
-        'http+unix://' + urllib.parse.quote_plus(FIRECRACKER_SOCKET) + '/' + endpoint,
-        json=data
-    )
+    cmd = [
+        'curl',
+        '-X', 'PUT',
+        '--unix-socket', FIRECRACKER_SOCKET,
+        '-H', 'Content-Type: application/json',
+        '-d', json.dumps(data),
+        f'http://localhost/{endpoint}'
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
     #print(result)
 
 def setup_host_network_devices():

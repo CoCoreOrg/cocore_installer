@@ -2,6 +2,30 @@
 
 This document summarizes the proof-of-concept CoCore implementation.
 
+## Setup Networking
+
+Before you can run the app, you will need to set up networking on the host machine. First, open `cocore_installer/setup_network.sh` and find the line that says
+
+```
+HOST_IFACE=elo1
+```
+
+Change this line to your host network interface (e.g. `eth1`), then run:
+
+```bash
+bash cocore_installer/setup_network.sh
+```
+
+Then, open `cocore_installer/task_worker.py` and find the line that says
+
+```bash
+WEBSOCKET_SERVER = "ws://192.168.3.11:3001/vm"
+```
+
+Change the IP address on this line to the IP of the host server.
+
+## Build and Install
+
 To build and install the app, run the following commands in the `cocore_installer` root directory:
 
 ```bash

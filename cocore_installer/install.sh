@@ -102,18 +102,15 @@ fi
 e2fsck -yf "${ROOTFS_FILE}"
 resize2fs -f "${ROOTFS_FILE}" 1024000
 
-# Prompt for auth key and verify
-auth_key=""
+# Loop for auth key
 while true; do
     echo "Please enter your authentication key:"
     read -s auth_key
 
-    cocore-store-auth-key \
+    if cocore-store-auth-key \
         --key "$auth_key" \
         --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
-        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key"
-    
-    if [ $? -eq 0 ]; then
+        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key"; then
         break
     else
         echo "Authentication failed. Please try again."

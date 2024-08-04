@@ -59,4 +59,6 @@ journalctl -u cocore -f
 
 Press Ctrl + D to exit the output view.
 
+To test running commands with the control server, navigate to the address of the **host server** in your web browser. For example, my host server address is `192.168.3.11` and the web server runs on port `3001`, so I can navigate my web browser to `http://192.168.3.11:3001`.
+
 When you are finished with the VM, run `reboot` to shut it down.

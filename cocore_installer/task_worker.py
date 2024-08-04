@@ -8,7 +8,7 @@ import sys
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
-WEBSOCKET_SERVER = "ws://192.168.3.11:3001/vm"
+WEBSOCKET_SERVER = "ws://161.35.61.125:3001/vm"
 
 def load_auth_key():
     with open(SECRET_KEY_FILE, "rb") as key_file:

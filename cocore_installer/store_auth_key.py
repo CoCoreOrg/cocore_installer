@@ -3,9 +3,6 @@ import argparse
 import sys
 from cryptography.fernet import Fernet
 
-AUTH_KEY_FILE = "/etc/cocore/auth_key"
-SECRET_KEY_FILE = "/etc/cocore/secret.key"
-
 def generate_key():
     return Fernet.generate_key()
 
@@ -32,6 +29,7 @@ def main():
     key = generate_key()
     with open(args.secretfile, "wb") as key_file:
         key_file.write(key)
+    print(f'Wrote auth key to {args.secretfile}')
     
     store_auth_key(args.key, key, args.keyfile)
     print("Authentication key stored securely.")

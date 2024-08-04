@@ -2,7 +2,7 @@
 
 set -ex
 
-HOST_IFACE=elo1
+HOST_IFACE=eth0
 
 ip link del tap0 2> /dev/null || true
 ip tuntap add dev tap0 mode tap

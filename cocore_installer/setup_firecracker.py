@@ -9,22 +9,9 @@ import urllib
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
-WEBSOCKET_SERVER = "ws://localhost:8765"
 FIRECRACKER_CONFIG_PATH = '/root/cocore_installer/cocore_installer/firecracker_config.json'
 TAP_DEVICE = "tap0"
 TAP_IP = "172.16.0.1"
-
-async def register_machine():
-    return
-    try:
-        async with websockets.connect(WEBSOCKET_SERVER) as websocket:
-            await websocket.send(json.dumps({"action": "register"}))
-    except:
-        print('Error registering machine')
-
-async def deregister_machine():
-    async with websockets.connect(WEBSOCKET_SERVER) as websocket:
-        await websocket.send(json.dumps({"action": "deregister"}))
 
 def cleanup_existing_firecracker_processes():
     subprocess.run(['pkill', '-f', FIRECRACKER_BIN])
@@ -104,12 +91,11 @@ def main():
         start_firecracker_with_config(args.cpu, args.ram)
         print("Checking WebSocket server...")
         time.sleep(5)
-        asyncio.get_event_loop().run_until_complete(register_machine())
 
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        asyncio.get_event_loop().run_until_complete(deregister_machine())
+        pass
     except Exception as e:
         print(f"Error: {e}")
     finally:

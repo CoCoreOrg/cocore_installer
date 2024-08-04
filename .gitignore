@@ -163,3 +163,8 @@ cython_debug/
 
 # macOS Things
 .DS_Store
+
+# Firecracker
+firecracker.rsa
+ubuntu-22.04.ext4
+vmlinux

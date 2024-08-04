@@ -102,6 +102,11 @@ fi
 e2fsck -yf "${ROOTFS_FILE}"
 resize2fs -f "${ROOTFS_FILE}" 1024000
 
+# Copy task worker script to rootfs
+mkdir -p $MOUNT_POINT
+sudo mount -o loop $ROOTFS_FILE $MOUNT_POINT
+sudo cp $TASK_WORKER_SCRIPT $MOUNT_POINT/root/task_worker.py
+
 # Loop for auth key
 while true; do
     echo "Please enter your authentication key:"
@@ -116,11 +121,6 @@ while true; do
         echo "Authentication failed. Please try again."
     fi
 done
-
-# Copy task worker script to rootfs
-mkdir -p $MOUNT_POINT
-sudo mount -o loop $ROOTFS_FILE $MOUNT_POINT
-sudo cp $TASK_WORKER_SCRIPT $MOUNT_POINT/root/task_worker.py
 
 # Copy the init script to rootfs
 sudo cp cocore_installer/init.sh $MOUNT_POINT/root/init.sh

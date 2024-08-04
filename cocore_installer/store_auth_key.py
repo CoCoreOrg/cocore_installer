@@ -1,5 +1,6 @@
 import os
 import argparse
+import sys
 from cryptography.fernet import Fernet
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
@@ -22,6 +23,10 @@ def main():
     parser.add_argument('--keyfile', type=str, required=True, help='Where to store the authentication key')
     parser.add_argument('--secretfile', type=str, required=True, help='Where to store the secret key')
     args = parser.parse_args()
+
+    if args.key != "abcd":
+        print("Authentication failed.")
+        sys.exit(1)
 
     os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
     key = generate_key()

@@ -102,49 +102,31 @@ fi
 e2fsck -yf "${ROOTFS_FILE}"
 resize2fs -f "${ROOTFS_FILE}" 1024000
 
-# Prompt for auth key
-echo "Please enter your authentication key:"
-read -s auth_key
+# Prompt for auth key and verify
+auth_key=""
+while true; do
+    echo "Please enter your authentication key:"
+    read -s auth_key
+
+    cocore-store-auth-key \
+        --key "$auth_key" \
+        --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
+        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key"
+    
+    if [ $? -eq 0 ]; then
+        break
+    else
+        echo "Authentication failed. Please try again."
+    fi
+done
 
 # Copy task worker script to rootfs
 mkdir -p $MOUNT_POINT
 sudo mount -o loop $ROOTFS_FILE $MOUNT_POINT
 sudo cp $TASK_WORKER_SCRIPT $MOUNT_POINT/root/task_worker.py
 
-cocore-store-auth-key \
-    --key "$auth_key" \
-    --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
-    --secretfile "${MOUNT_POINT}/etc/cocore/secret.key"
-
-cat > "${MOUNT_POINT}/root/init.sh" <<EOF
-#!/bin/bash
-
-set -e
-
-echo COCORE
-
-echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-ip addr add 172.16.0.2/24 dev eth0
-ip link set eth0 up
-ip route add default via 172.16.0.1 dev eth0
-echo 1 > /root/network_configured
-
-sleep 1
-
-touch /var/lib/dpkg/status
-apt-get update -y
-apt-get install -y python3.10-venv
-
-python3 -m venv /root/venv
-
-source /root/venv/bin/activate
-
-pip3 install requests websockets cryptography
-
-python3 /root/task_worker.py
-
-EOF
-
+# Copy the init script to rootfs
+sudo cp cocore_installer/init.sh $MOUNT_POINT/root/init.sh
 sudo chmod +x "${MOUNT_POINT}/root/init.sh"
 
 cat > "$MOUNT_POINT/etc/systemd/system/cocore.service" <<EOF

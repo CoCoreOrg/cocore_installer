@@ -14,13 +14,16 @@ setup(
         'six>=1.15.0',
         'urllib3',
         'cryptography',
-        'websockets'
+        'websockets',
+        'requests-unixsocket',
+        'tornado',
     ],
     entry_points={
         'console_scripts': [
             'cocore-install=cocore_installer.install:main',
             'cocore-store-auth-key=cocore_installer.store_auth_key:main',
             'cocore-setup-firecracker=cocore_installer.setup_firecracker:main',
+            'cocore-task-server=cocore_installer.task_server:start_server',
         ],
     },
 )

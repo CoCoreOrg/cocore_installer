@@ -77,7 +77,7 @@ def main():
     key = generate_key()
     with open(os.path.join(args.mount_point, args.secretfile), "wb") as key_file:
         key_file.write(key)
-    print(f'Wrote auth key to {os.path.join(args.workdir, args.secretfile)}')
+    print(f'Wrote auth key to {os.path.join(args.mount_point, args.secretfile)}')
 
     # Encrypt the authentication key with the secret key
     cipher_suite = Fernet(key)
@@ -90,7 +90,7 @@ def main():
         sys.exit(1)
 
     # Store the authentication key securely
-    store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
+    store_auth_key(args.key, key, os.path.join(args.mount_point, args.keyfile))
     print("Authentication key stored securely.")
 
     # Generate client-side certificates
@@ -102,10 +102,10 @@ def main():
 
     # Move the certificates directory to args.cocore_directory
     subprocess.run(['cp', '-r', cert_dir, os.path.join(args.mount_point, args.cocore_directory)], check=True)
-    print(f"Copied certificates to {args.cocore_directory}")
+    print(f"Copied certificates to {os.path.join(args.mount_point, args.cocore_directory)}")
 
     # Save the token for later use
-    with open(os.path.join(args.mount_point, "/tokenfile"), "w") as token_file:
+    with open(os.path.join(args.mount_point, args.cocore_directory, "tokenfile"), "w") as token_file:
         token_file.write(token)
 
 if __name__ == "__main__":

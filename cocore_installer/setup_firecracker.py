@@ -4,7 +4,6 @@ import argparse
 import subprocess
 import time
 import urllib
-import requests
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
@@ -71,11 +70,21 @@ def send_specs(token, cpu, ram):
         "cpu": cpu,
         "ram": ram
     }
-    response = requests.post("https://cocore.io/hosts/update_specs", json=payload)
-    if response.status_code == 200 and response.json().get("success"):
+
+    cmd = [
+        'curl',
+        '-X', 'POST',
+        '-H', 'Content-Type: application/json',
+        '-d', json.dumps(payload),
+        'https://cocore.io/hosts/update_specs'
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    response = json.loads(result.stdout)
+
+    if result.returncode == 0 and response.get("success"):
         print("Specifications updated successfully.")
     else:
-        print(response.json().get("message"))
+        print(response.get("message"))
 
 def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")

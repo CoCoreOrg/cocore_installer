@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 import sys
-import requests
+import subprocess
 from cryptography.fernet import Fernet
 
 def generate_key():
@@ -31,11 +31,20 @@ def validate_host(auth_key, secretfile):
         "auth_key": encrypted_auth_key
     }
 
-    response = requests.post("https://cocore.io/hosts/validate", json=payload)
-    if response.status_code == 200 and response.json().get("valid"):
-        return response.json().get("token")
+    cmd = [
+        'curl',
+        '-X', 'POST',
+        '-H', 'Content-Type: application/json',
+        '-d', json.dumps(payload),
+        'https://cocore.io/hosts/validate'
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    response = json.loads(result.stdout)
+
+    if result.returncode == 0 and response.get("valid"):
+        return response.get("token")
     else:
-        print(response.json().get("message"))
+        print(response.get("message"))
         return None
 
 def main():

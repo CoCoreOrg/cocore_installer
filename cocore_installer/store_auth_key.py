@@ -39,8 +39,8 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
-def generate_certificates():
-    cert_dir = os.path.join(args.workdir, "certificates")
+def generate_certificates(workdir):
+    cert_dir = os.path.join(workdir, "certificates")
     os.makedirs(cert_dir, exist_ok=True)
     key_path = os.path.join(cert_dir, "client.key")
     cert_path = os.path.join(cert_dir, "client.crt")
@@ -87,10 +87,11 @@ def main():
     print("Authentication key stored securely.")
 
     # Generate client-side certificates directly in the correct location
-    key_path, cert_path = generate_certificates()
+    key_path, cert_path = generate_certificates(args.workdir)
     print(f"Generated client certificates at {key_path} and {cert_path}")
 
     # Save the token for later use
+    os.makedirs("/etc/cocore", exist_ok=True)
     with open("/etc/cocore/tokenfile", "w") as token_file:
         token_file.write(token)
 

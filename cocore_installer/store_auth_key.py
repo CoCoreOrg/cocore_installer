@@ -60,8 +60,6 @@ def generate_certificates():
 def main():
     parser = argparse.ArgumentParser(description="Store the authentication key securely.")
     parser.add_argument('--key', type=str, required=True, help='The authentication key to be stored.')
-    parser.add_argument('--keyfile', type=str, required=True, help='Where to store the authentication key')
-    parser.add_argument('--secretfile', type=str, required=True, help='Where to store the secret key')
     parser.add_argument('--workdir', type=str, required=True, help='Current working directory')
     args = parser.parse_args()
 

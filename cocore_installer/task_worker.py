@@ -1,14 +1,18 @@
 import time
 import json
-import requests
 import asyncio
 import websockets
-from cryptography.fernet import Fernet
+import ssl
 import sys
+from cryptography.fernet import Fernet
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
-WEBSOCKET_SERVER = "ws://161.35.61.125:3001/vm"
+WEBSOCKET_SERVER = "wss://cocore.io:3001/vm"
+CERT_DIR = "/path/to/certificates"  # Replace with the actual path where certificates are stored
+CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
+CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
+CA_CERT_FILE = f"{CERT_DIR}/ca.crt"  # Replace with CA certificate if needed
 
 def load_auth_key():
     with open(SECRET_KEY_FILE, "rb") as key_file:
@@ -38,8 +42,12 @@ async def process_task(task):
     sys.stderr.flush()
 
 async def task_listener():
-    async with websockets.connect(WEBSOCKET_SERVER) as websocket:
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
+    ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
 
+    async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context) as websocket:
         print('\nVM is ready to accept tasks. :)\n')
         sys.stdout.flush()
 

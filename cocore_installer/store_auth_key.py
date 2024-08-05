@@ -55,7 +55,7 @@ def generate_certificates(workdir):
     # Self-sign the certificate (for demonstration purposes; in production, you would get this signed by a CA)
     subprocess.run(['openssl', 'x509', '-req', '-in', csr_path, '-signkey', key_path, '-out', cert_path, '-days', '365'], check=True)
 
-    return key_path, cert_path
+    return cert_dir
 
 def main():
     parser = argparse.ArgumentParser(description="Store the authentication key securely.")
@@ -91,11 +91,15 @@ def main():
     print("Authentication key stored securely.")
 
     # Generate client-side certificates
-    key_path, cert_path = generate_certificates(args.workdir)
-    print(f"Generated client certificates at {key_path} and {cert_path}")
+    cert_dir = generate_certificates(args.workdir)
+    print(f"Generated client certificates at {cert_dir}")
 
     # Ensure the /etc/cocore directory exists
     os.makedirs("/etc/cocore", exist_ok=True)
+
+    # Move the certificates directory to /etc/cocore
+    subprocess.run(['cp', '-r', cert_dir, '/etc/cocore/'], check=True)
+    print(f"Copied certificates to /etc/cocore/")
 
     # Save the token for later use
     with open("/etc/cocore/tokenfile", "w") as token_file:

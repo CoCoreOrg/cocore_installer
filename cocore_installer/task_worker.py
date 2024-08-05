@@ -9,7 +9,7 @@ from cryptography.fernet import Fernet
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
 WEBSOCKET_SERVER = "wss://cocore.io:3001/vm"
-CERT_DIR = "/path/to/certificates"  # Replace with the actual path where certificates are stored
+CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
 CA_CERT_FILE = f"{CERT_DIR}/ca.crt"  # Replace with CA certificate if needed

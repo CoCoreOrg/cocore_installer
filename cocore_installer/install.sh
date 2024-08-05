@@ -116,19 +116,12 @@ while true; do
         --key "$auth_key" \
         --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
         --secretfile "${MOUNT_POINT}/etc/cocore/secret.key" \
-        --workdir "$(pwd)"; then
+        --workdir "$MOUNT_POINT/etc/cocore"; then
         break
     else
         echo "Authentication failed. Please try again."
     fi
 done
-
-# Ensure /etc/cocore/certificates directory exists
-sudo mkdir -p ${MOUNT_POINT}/etc/cocore/certificates
-
-# Copy generated certificates to /etc/cocore/certificates
-sudo cp "$(pwd)/certificates/client.key" "${MOUNT_POINT}/etc/cocore/certificates/client.key"
-sudo cp "$(pwd)/certificates/client.crt" "${MOUNT_POINT}/etc/cocore/certificates/client.crt"
 
 # Copy the init script to rootfs
 sudo cp cocore_installer/init.sh $MOUNT_POINT/root/init.sh

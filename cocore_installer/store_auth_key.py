@@ -89,22 +89,18 @@ def main():
     store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
     print("Authentication key stored securely.")
 
-    # Generate client-side certificates
-    cert_dir = os.path.join(args.workdir, "certificates")
-    key_path, cert_path = generate_certificates(cert_dir)
-    print(f"Generated client certificates at {key_path} and {cert_path}")
-
     # Ensure the /etc/cocore directory exists
     os.makedirs("/etc/cocore", exist_ok=True)
-    os.makedirs("/etc/cocore/certificates", exist_ok=True)
+    cert_dir = "/etc/cocore/certificates"
+    os.makedirs(cert_dir, exist_ok=True)
+
+    # Generate client-side certificates directly in the correct location
+    key_path, cert_path = generate_certificates(cert_dir)
+    print(f"Generated client certificates at {key_path} and {cert_path}")
 
     # Save the token for later use
     with open("/etc/cocore/tokenfile", "w") as token_file:
         token_file.write(token)
-
-    # Move certificates to the correct location
-    os.rename(key_path, "/etc/cocore/certificates/client.key")
-    os.rename(cert_path, "/etc/cocore/certificates/client.crt")
 
 if __name__ == "__main__":
     main()

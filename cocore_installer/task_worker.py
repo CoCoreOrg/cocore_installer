@@ -22,6 +22,24 @@ def load_auth_key():
         encrypted_key = file.read()
     return cipher_suite.decrypt(encrypted_key).decode()
 
+async def ping_test():
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
+    ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+    try:
+        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context) as websocket:
+            print("Connected to WebSocket server")
+            await websocket.send(json.dumps({"type": "ping"}))
+            response = await websocket.recv()
+            print(f"Received: {response}")
+            if json.loads(response).get("type") == "pong":
+                return True
+    except Exception as e:
+        print(f"Connection failed: {e}")
+    return False
+
 async def process_task(task):
     print(f"Processing task: {task}")
     proc = await asyncio.create_subprocess_exec(
@@ -54,9 +72,13 @@ async def task_listener():
             task = json.loads(task)
             await process_task(task['command'])
 
-def main():
+async def main():
     auth_key = load_auth_key()
-    asyncio.get_event_loop().run_until_complete(task_listener())
+    ping_successful = await ping_test()
+    if ping_successful:
+        await task_listener()
+    else:
+        print("Ping test failed. Exiting.")
 
 if __name__ == "__main__":
-    main()
+    asyncio.get_event_loop().run_until_complete(main())

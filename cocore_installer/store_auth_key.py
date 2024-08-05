@@ -38,8 +38,7 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
-def generate_certificates(workdir):
-    cert_dir = os.path.join(workdir, "certificates")
+def generate_certificates(cert_dir):
     os.makedirs(cert_dir, exist_ok=True)
 
     key_path = os.path.join(cert_dir, "client.key")
@@ -91,7 +90,8 @@ def main():
     print("Authentication key stored securely.")
 
     # Generate client-side certificates
-    key_path, cert_path = generate_certificates(args.workdir)
+    cert_dir = os.path.join(args.workdir, "certificates")
+    key_path, cert_path = generate_certificates(cert_dir)
     print(f"Generated client certificates at {key_path} and {cert_path}")
 
     # Ensure the /etc/cocore directory exists

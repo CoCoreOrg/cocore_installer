@@ -115,7 +115,8 @@ while true; do
     if cocore-store-auth-key \
         --key "$auth_key" \
         --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
-        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key"; then
+        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key" \
+        --workdir "$(pwd)"; then
         break
     else
         echo "Authentication failed. Please try again."

@@ -52,24 +52,33 @@ def main():
     parser.add_argument('--key', type=str, required=True, help='The authentication key to be stored.')
     parser.add_argument('--keyfile', type=str, required=True, help='Where to store the authentication key')
     parser.add_argument('--secretfile', type=str, required=True, help='Where to store the secret key')
+    parser.add_argument('--workdir', type=str, required=True, help='Current working directory')
     args = parser.parse_args()
 
-    token = validate_host(args.key, args.secretfile)
+    # Ensure the workdir exists
+    os.makedirs(args.workdir, exist_ok=True)
+    os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
+    os.makedirs(os.path.dirname(args.keyfile), exist_ok=True)
+
+    token = validate_host(args.key, os.path.join(args.workdir, args.secretfile))
     if not token:
         print("Authentication failed.")
         sys.exit(1)
 
     os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
     key = generate_key()
-    with open(args.secretfile, "wb") as key_file:
+    with open(os.path.join(args.workdir, args.secretfile), "wb") as key_file:
         key_file.write(key)
-    print(f'Wrote auth key to {args.secretfile}')
+    print(f'Wrote auth key to {os.path.join(args.workdir, args.secretfile)}')
     
-    store_auth_key(args.key, key, args.keyfile)
+    store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
     print("Authentication key stored securely.")
 
+    # Ensure the /etc/cocore directory exists
+    os.makedirs("/etc/cocore", exist_ok=True)
+
     # Save the token for later use
-    with open("/path/to/tokenfile", "w") as token_file:
+    with open("/etc/cocore/tokenfile", "w") as token_file:
         token_file.write(token)
 
 if __name__ == "__main__":

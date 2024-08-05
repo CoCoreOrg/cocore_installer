@@ -92,6 +92,9 @@ def main():
     parser.add_argument('--ram', type=int, default=1024, help='Memory size in MiB for the microVM')
     args = parser.parse_args()
 
+    # Ensure the /etc/cocore directory exists
+    os.makedirs(os.path.dirname(TOKEN_PATH), exist_ok=True)
+
     # Load the token
     with open(TOKEN_PATH, "r") as token_file:
         token = token_file.read().strip()

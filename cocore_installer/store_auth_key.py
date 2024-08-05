@@ -4,16 +4,17 @@ import argparse
 import sys
 import subprocess
 from cryptography.fernet import Fernet
-
+KEYFILE = "auth_key"
+SECRETFILE = "secret.key"
 def generate_key():
     return Fernet.generate_key()
 
-def store_auth_key(auth_key, key, keyfile):
+def store_auth_key(auth_key, key):
     cipher_suite = Fernet(key)
     encrypted_key = cipher_suite.encrypt(auth_key.encode())
 
-    os.makedirs(os.path.dirname(keyfile), exist_ok=True)
-    with open(keyfile, "wb") as file:
+    os.makedirs(os.path.dirname(KEYFILE), exist_ok=True)
+    with open(KEYFILE, "wb") as file:
         file.write(encrypted_key)
 
 def validate_host(auth_key, encrypted_auth_key):
@@ -38,8 +39,8 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
-def generate_certificates(workdir):
-    cert_dir = os.path.join(workdir, "certificates")
+def generate_certificates(mount_point):
+    cert_dir = os.path.join(mount_point, "certificates")
     os.makedirs(cert_dir, exist_ok=True)
 
     key_path = os.path.join(cert_dir, "client.key")
@@ -62,22 +63,21 @@ def main():
     parser.add_argument('--key', type=str, required=True, help='The authentication key to be stored.')
     parser.add_argument('--mount_point', type=str, required=True, help='Mount point for CoCore')
     parser.add_argument('--cocore_directory', type=str, required=True, help='Settings directory for CoCore')
-    parser.add_argument('--keyfile', type=str, required=True, help='Where to store the authentication key')
-    parser.add_argument('--secretfile', type=str, required=True, help='Where to store the secret key')
     parser.add_argument('--workdir', type=str, required=True, help='Current working directory')
     args = parser.parse_args()
-
+    
     # Ensure the workdir exists
     os.makedirs(args.workdir, exist_ok=True)
     os.makedirs(args.mount_point, exist_ok=True)
-    os.makedirs(os.path.join(args.mount_point, os.path.dirname(args.secretfile)), exist_ok=True)
-    os.makedirs(os.path.join(args.mount_point, os.path.dirname(args.keyfile)), exist_ok=True)
+    os.makedirs(os.path.join(args.mount_point, "certificates"), exist_ok=True)
+    os.makedirs(os.path.join(args.mount_point, os.path.dirname(SECRETFILE)), exist_ok=True)
+    os.makedirs(os.path.join(args.mount_point, os.path.dirname(KEYFILE)), exist_ok=True)
 
     # Generate and store the secret key
     key = generate_key()
-    with open(os.path.join(args.mount_point, args.secretfile), "wb") as key_file:
+    with open(os.path.join(args.mount_point, SECRETFILE), "wb") as key_file:
         key_file.write(key)
-    print(f'Wrote auth key to {os.path.join(args.mount_point, args.secretfile)}')
+    print(f'Wrote auth key to {os.path.join(args.mount_point, SECRETFILE)}')
 
     # Encrypt the authentication key with the secret key
     cipher_suite = Fernet(key)
@@ -90,20 +90,20 @@ def main():
         sys.exit(1)
 
     # Store the authentication key securely
-    store_auth_key(args.key, key, os.path.join(args.mount_point, args.keyfile))
+    store_auth_key(args.key, key, os.path.join(args.mount_point, KEYFILE))
     print("Authentication key stored securely.")
 
     # Generate client-side certificates
-    cert_dir = generate_certificates(args.workdir)
+    cert_dir = generate_certificates(args.mount_point)
     print(f"Generated client certificates at {cert_dir}")
 
     # Ensure the args.cocore_directory directory exists
     os.makedirs(os.path.join(args.mount_point, args.cocore_directory), exist_ok=True)
 
-    # Move the certificates directory to args.cocore_directory
-    subprocess.run(['cp', '-r', cert_dir, os.path.join(args.mount_point, args.cocore_directory)], check=True)
-    print(f"Copied certificates to {os.path.join(args.mount_point, args.cocore_directory)}")
-
+    # # Move the certificates directory to args.cocore_directory
+    # subprocess.run(['cp', '-r', cert_dir, os.path.join(args.mount_point, args.cocore_directory)], check=True)
+    # print(f"Copied certificates to {os.path.join(args.mount_point, args.cocore_directory)}")
+    #
     # Save the token for later use
     with open(os.path.join(args.mount_point, args.cocore_directory, "tokenfile"), "w") as token_file:
         token_file.write(token)

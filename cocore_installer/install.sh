@@ -113,12 +113,10 @@ while true; do
     echo "Please enter your authentication key:"
     read -s auth_key
 
-    if python3 store_auth_key.py \
+    if cocore-store-auth-key \
         --key "$auth_key" \
         --mount_point "${MOUNT_POINT}" \
         --cocore_directory "${COCORE_DIR}" \
-        --keyfile "${COCORE_DIR}/auth_key" \
-        --secretfile "${COCORE_DIR}/secret.key" \
         --workdir "$(pwd)"; then
         break
     else

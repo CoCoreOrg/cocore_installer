@@ -11,6 +11,7 @@ setup(
     install_requires=[
         'requests == 2.24.0',
         'requests-unixsocket>=0.2.0',
+        'psutil==6.0.0',
         'six>=1.15.0',
         'urllib3',
         'cryptography',

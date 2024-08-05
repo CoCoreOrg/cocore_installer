@@ -3,13 +3,35 @@ import json
 import argparse
 import subprocess
 import time
+import psutil
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
-FIRECRACKER_CONFIG_PATH = './firecracker_config.json'
 TAP_DEVICE = "tap0"
 TAP_IP = "172.16.0.1"
 TOKEN_PATH = "/etc/cocore/tokenfile"
+FIRECRACKER_DEFAULT_CONFIG = {
+  "boot-source": {
+    "kernel_image_path": "vmlinux",
+    "boot_args": "console=ttyS0 reboot=k panic=1 pci=off"
+  },
+  "drives": [
+    {
+      "drive_id": "rootfs",
+      "path_on_host": "ubuntu-22.04.ext4",
+      "is_root_device": True,
+      "is_read_only": False,
+      "cache_type": "Unsafe",
+      "io_engine": "Sync"
+    }
+  ],
+  "machine-config": {
+    "vcpu_count": 2,
+    "mem_size_mib": 1024,
+    "smt": False
+  },
+  "network-interfaces": []
+}
 
 def cleanup_existing_firecracker_processes():
     subprocess.run(['pkill', '-f', FIRECRACKER_BIN])
@@ -35,8 +57,7 @@ def start_firecracker_with_config(cpu_count, ram_size):
     firecracker_process = subprocess.Popen([FIRECRACKER_BIN, '--api-sock', FIRECRACKER_SOCKET])
     time.sleep(1)
 
-    with open(FIRECRACKER_CONFIG_PATH) as f:
-        vm_config = json.load(f)
+    vm_config = FIRECRACKER_DEFAULT_CONFIG
 
     vm_config["machine-config"]["vcpu_count"] = cpu_count
     vm_config["machine-config"]["mem_size_mib"] = ram_size
@@ -85,10 +106,17 @@ def send_specs(token, cpu, ram):
     else:
         print(response.get("message"))
 
+def get_system_resources():
+    total_cpus = psutil.cpu_count(logical=True)
+    total_memory = psutil.virtual_memory().total // (1024 * 1024)  # Convert bytes to MiB
+    return total_cpus, total_memory
+
 def main():
+    total_cpus, total_memory = get_system_resources()
+
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")
-    parser.add_argument('--cpu', type=int, default=2, help='Number of vCPUs for the microVM')
-    parser.add_argument('--ram', type=int, default=1024, help='Memory size in MiB for the microVM')
+    parser.add_argument('--cpu', type=int, default=total_cpus, help='Number of vCPUs for the microVM')
+    parser.add_argument('--ram', type=int, default=total_memory, help='Memory size in MiB for the microVM')
     args = parser.parse_args()
 
     # Ensure the /etc/cocore directory exists

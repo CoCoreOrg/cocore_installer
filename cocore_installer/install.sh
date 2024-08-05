@@ -114,8 +114,10 @@ while true; do
 
     if cocore-store-auth-key \
         --key "$auth_key" \
-        --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
-        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key" \
+        --mount_point "${MOUNT_POINT}" \
+        --cocore_directory "/etc/cocore" \
+        --keyfile "/etc/cocore/auth_key" \
+        --secretfile "/etc/cocore/secret.key" \
         --workdir "$(pwd)"; then
         break
     else

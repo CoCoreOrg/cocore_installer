@@ -13,8 +13,8 @@ def store_auth_key(auth_key, key):
     cipher_suite = Fernet(key)
     encrypted_key = cipher_suite.encrypt(auth_key.encode())
 
-    os.makedirs(os.path.dirname(KEYFILE), exist_ok=True)
-    with open(KEYFILE, "wb") as file:
+    os.makedirs(os.path.join(args.mount_point, KEYFILE), exist_ok=True)
+    with open(os.path.join(args.mount_point, KEYFILE), "wb") as file:
         file.write(encrypted_key)
 
 def validate_host(auth_key, encrypted_auth_key):
@@ -90,7 +90,7 @@ def main():
         sys.exit(1)
 
     # Store the authentication key securely
-    store_auth_key(args.key, key, os.path.join(args.mount_point, KEYFILE))
+    store_auth_key(args.key, key)
     print("Authentication key stored securely.")
 
     # Generate client-side certificates

@@ -38,6 +38,25 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
+def generate_certificates(workdir):
+    cert_dir = os.path.join(workdir, "certificates")
+    os.makedirs(cert_dir, exist_ok=True)
+
+    key_path = os.path.join(cert_dir, "client.key")
+    cert_path = os.path.join(cert_dir, "client.crt")
+    csr_path = os.path.join(cert_dir, "client.csr")
+
+    # Generate private key
+    subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-out', key_path, '-pkeyopt', 'rsa_keygen_bits:2048'], check=True)
+
+    # Generate CSR (Certificate Signing Request)
+    subprocess.run(['openssl', 'req', '-new', '-key', key_path, '-out', csr_path, '-subj', '/CN=client'], check=True)
+
+    # Self-sign the certificate (for demonstration purposes; in production, you would get this signed by a CA)
+    subprocess.run(['openssl', 'x509', '-req', '-in', csr_path, '-signkey', key_path, '-out', cert_path, '-days', '365'], check=True)
+
+    return key_path, cert_path
+
 def main():
     parser = argparse.ArgumentParser(description="Store the authentication key securely.")
     parser.add_argument('--key', type=str, required=True, help='The authentication key to be stored.')
@@ -70,6 +89,10 @@ def main():
     # Store the authentication key securely
     store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
     print("Authentication key stored securely.")
+
+    # Generate client-side certificates
+    key_path, cert_path = generate_certificates(args.workdir)
+    print(f"Generated client certificates at {key_path} and {cert_path}")
 
     # Ensure the /etc/cocore directory exists
     os.makedirs("/etc/cocore", exist_ok=True)

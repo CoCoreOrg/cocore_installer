@@ -3,7 +3,6 @@ import json
 import argparse
 import subprocess
 import time
-import urllib
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
@@ -52,7 +51,7 @@ def start_firecracker_with_config(cpu_count, ram_size):
 
     send_firecracker_request('boot-source', vm_config["boot-source"])
     for drive in vm_config.get("drives", []):
-        send_firecracker_request(f'drives/{urllib.parse.quote_plus(drive["drive_id"])}', drive)
+        send_firecracker_request(f'drives/{drive["drive_id"]}', drive)
     send_firecracker_request('machine-config', vm_config["machine-config"])
 
     send_firecracker_request('network-interfaces/net1', {

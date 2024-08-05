@@ -16,16 +16,7 @@ def store_auth_key(auth_key, key, keyfile):
     with open(keyfile, "wb") as file:
         file.write(encrypted_key)
 
-def load_secret_key(secretfile):
-    with open(secretfile, "rb") as key_file:
-        key = key_file.read()
-    return key
-
-def validate_host(auth_key, secretfile):
-    key = load_secret_key(secretfile)
-    cipher_suite = Fernet(key)
-    encrypted_auth_key = cipher_suite.encrypt(auth_key.encode()).decode()
-
+def validate_host(auth_key, encrypted_auth_key):
     payload = {
         "uuid": auth_key,
         "auth_key": encrypted_auth_key
@@ -60,17 +51,23 @@ def main():
     os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
     os.makedirs(os.path.dirname(args.keyfile), exist_ok=True)
 
-    token = validate_host(args.key, os.path.join(args.workdir, args.secretfile))
-    if not token:
-        print("Authentication failed.")
-        sys.exit(1)
-
-    os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
+    # Generate and store the secret key
     key = generate_key()
     with open(os.path.join(args.workdir, args.secretfile), "wb") as key_file:
         key_file.write(key)
     print(f'Wrote auth key to {os.path.join(args.workdir, args.secretfile)}')
-    
+
+    # Encrypt the authentication key with the secret key
+    cipher_suite = Fernet(key)
+    encrypted_auth_key = cipher_suite.encrypt(args.key.encode()).decode()
+
+    # Validate the host
+    token = validate_host(args.key, encrypted_auth_key)
+    if not token:
+        print("Authentication failed.")
+        sys.exit(1)
+
+    # Store the authentication key securely
     store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
     print("Authentication key stored securely.")
 

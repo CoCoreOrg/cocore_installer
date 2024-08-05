@@ -4,8 +4,10 @@ import argparse
 import sys
 import subprocess
 from cryptography.fernet import Fernet
+
 KEYFILE = "auth_key"
 SECRETFILE = "secret.key"
+
 def generate_key():
     return Fernet.generate_key()
 
@@ -42,20 +44,29 @@ def validate_host(auth_key, encrypted_auth_key):
 def generate_certificates(workdir):
     cert_dir = os.path.join(workdir, "certificates")
     os.makedirs(cert_dir, exist_ok=True)
-    key_path = os.path.join(cert_dir, "client.key")
-    cert_path = os.path.join(cert_dir, "client.crt")
+
+    ca_key_path = os.path.join(cert_dir, "ca.key")
+    ca_cert_path = os.path.join(cert_dir, "ca.crt")
+    client_key_path = os.path.join(cert_dir, "client.key")
+    client_cert_path = os.path.join(cert_dir, "client.crt")
     csr_path = os.path.join(cert_dir, "client.csr")
 
-    # Generate private key
-    subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-out', key_path, '-pkeyopt', 'rsa_keygen_bits:2048'], check=True)
+    # Generate CA private key
+    subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-out', ca_key_path, '-pkeyopt', 'rsa_keygen_bits:2048'], check=True)
 
-    # Generate CSR (Certificate Signing Request)
-    subprocess.run(['openssl', 'req', '-new', '-key', key_path, '-out', csr_path, '-subj', '/CN=client'], check=True)
+    # Generate CA certificate
+    subprocess.run(['openssl', 'req', '-new', '-x509', '-key', ca_key_path, '-out', ca_cert_path, '-days', '365', '-subj', '/CN=ca'], check=True)
 
-    # Self-sign the certificate (for demonstration purposes; in production, you would get this signed by a CA)
-    subprocess.run(['openssl', 'x509', '-req', '-in', csr_path, '-signkey', key_path, '-out', cert_path, '-days', '365'], check=True)
+    # Generate client private key
+    subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-out', client_key_path, '-pkeyopt', 'rsa_keygen_bits:2048'], check=True)
 
-    return key_path, cert_path
+    # Generate CSR (Certificate Signing Request) for the client
+    subprocess.run(['openssl', 'req', '-new', '-key', client_key_path, '-out', csr_path, '-subj', '/CN=client'], check=True)
+
+    # Sign the client certificate with the CA certificate
+    subprocess.run(['openssl', 'x509', '-req', '-in', csr_path, '-CA', ca_cert_path, '-CAkey', ca_key_path, '-CAcreateserial', '-out', client_cert_path, '-days', '365'], check=True)
+
+    return ca_cert_path, client_key_path, client_cert_path
 
 def main():
     parser = argparse.ArgumentParser(description="Store the authentication key securely.")
@@ -87,8 +98,8 @@ def main():
     print("Authentication key stored securely.")
 
     # Generate client-side certificates directly in the correct location
-    key_path, cert_path = generate_certificates(args.workdir)
-    print(f"Generated client certificates at {key_path} and {cert_path}")
+    ca_cert_path, client_key_path, client_cert_path = generate_certificates(args.workdir)
+    print(f"Generated certificates at {ca_cert_path}, {client_key_path}, and {client_cert_path}")
 
     # Save the token for later use
     os.makedirs("/etc/cocore", exist_ok=True)

@@ -12,17 +12,14 @@ WEBSOCKET_SERVER = "wss://cocore.io:3001/vm"
 CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
-CA_CERT_FILE = f"{CERT_DIR}/ca.crt"  # Replace with CA certificate if needed
+CA_CERT_FILE = f"{CERT_DIR}/ca.crt"
 
 def load_auth_key():
     with open(SECRET_KEY_FILE, "rb") as key_file:
         key = key_file.read()
-
     cipher_suite = Fernet(key)
-    
     with open(AUTH_KEY_FILE, "rb") as file:
         encrypted_key = file.read()
-
     return cipher_suite.decrypt(encrypted_key).decode()
 
 async def process_task(task):
@@ -35,9 +32,9 @@ async def process_task(task):
         stderr=asyncio.subprocess.PIPE)
     stdout, stderr = await proc.communicate()
     if stdout:
-        print(stdout)
+        print(stdout.decode())
     if stderr:
-        print('\n\n == STDERR ==\n' + stderr)
+        print('\n\n == STDERR ==\n' + stderr.decode())
     sys.stdout.flush()
     sys.stderr.flush()
 

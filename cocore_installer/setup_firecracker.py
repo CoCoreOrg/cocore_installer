@@ -1,17 +1,17 @@
 import os
 import json
 import argparse
-import asyncio
-import websockets
 import subprocess
 import time
 import urllib
+import requests
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
 FIRECRACKER_CONFIG_PATH = '/root/cocore_installer/cocore_installer/firecracker_config.json'
 TAP_DEVICE = "tap0"
 TAP_IP = "172.16.0.1"
+TOKEN_PATH = "/etc/cocore/tokenfile"
 
 def cleanup_existing_firecracker_processes():
     subprocess.run(['pkill', '-f', FIRECRACKER_BIN])
@@ -31,14 +31,6 @@ def send_firecracker_request(endpoint, data):
     #print(result)
 
 def setup_host_network_devices():
-    """
-    Setup network devices on the host so that the VM may communicate with the
-    outside world.
-
-    For now, this assumes a certain device and IP address, but in the future
-    we should do some conflict resolution.
-    """
-
     subprocess.run(["./setup-network.sh"])
 
 def start_firecracker_with_config(cpu_count, ram_size):
@@ -59,15 +51,11 @@ def start_firecracker_with_config(cpu_count, ram_size):
         if not iface.get("iface_id"):
             iface["iface_id"] = f"eth{i}"
 
-    # Configure the VM
     send_firecracker_request('boot-source', vm_config["boot-source"])
     for drive in vm_config.get("drives", []):
         send_firecracker_request(f'drives/{urllib.parse.quote_plus(drive["drive_id"])}', drive)
     send_firecracker_request('machine-config', vm_config["machine-config"])
 
-    # Ensure each network interface has a unique ID
-    #for iface in vm_config.get("network-interfaces", []):
-    #    send_firecracker_request('network-interfaces', iface)
     send_firecracker_request('network-interfaces/net1', {
         "iface_id": "net1",
         "guest_mac": "06:00:AC:10:00:02",
@@ -75,15 +63,31 @@ def start_firecracker_with_config(cpu_count, ram_size):
     })
 
     time.sleep(1)
-
-    # Start the VM
     send_firecracker_request('actions', {"action_type": "InstanceStart"})
+
+def send_specs(token, cpu, ram):
+    payload = {
+        "token": token,
+        "cpu": cpu,
+        "ram": ram
+    }
+    response = requests.post("https://cocore.io/hosts/update_specs", json=payload)
+    if response.status_code == 200 and response.json().get("success"):
+        print("Specifications updated successfully.")
+    else:
+        print(response.json().get("message"))
 
 def main():
     parser = argparse.ArgumentParser(description="Configure and start a Firecracker microVM.")
     parser.add_argument('--cpu', type=int, default=2, help='Number of vCPUs for the microVM')
     parser.add_argument('--ram', type=int, default=1024, help='Memory size in MiB for the microVM')
     args = parser.parse_args()
+
+    # Load the token
+    with open(TOKEN_PATH, "r") as token_file:
+        token = token_file.read().strip()
+
+    send_specs(token, args.cpu, args.ram)
 
     cleanup_existing_firecracker_processes()
 
@@ -104,4 +108,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

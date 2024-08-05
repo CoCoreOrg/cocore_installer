@@ -74,7 +74,7 @@ def main():
     key = generate_key()
     with open(os.path.join(args.workdir, args.secretfile), "wb") as key_file:
         key_file.write(key)
-    print(f'Wrote secret key to {os.path.join(args.workdir, args.secretfile)}')
+    print(f'Wrote auth key to {os.path.join(args.workdir, args.secretfile)}')
 
     # Encrypt the authentication key with the secret key
     cipher_suite = Fernet(key)
@@ -94,19 +94,17 @@ def main():
     key_path, cert_path = generate_certificates(args.workdir)
     print(f"Generated client certificates at {key_path} and {cert_path}")
 
-    # Ensure the /etc/cocore directory exists inside the VM
-    etc_cocore_dir = os.path.join(args.workdir, "etc/cocore")
-    os.makedirs(etc_cocore_dir, exist_ok=True)
-
-    # Copy certificates to /etc/cocore/certificates inside the VM
-    cert_dest_dir = os.path.join(etc_cocore_dir, "certificates")
-    os.makedirs(cert_dest_dir, exist_ok=True)
-    subprocess.run(['cp', key_path, os.path.join(cert_dest_dir, 'client.key')], check=True)
-    subprocess.run(['cp', cert_path, os.path.join(cert_dest_dir, 'client.crt')], check=True)
+    # Ensure the /etc/cocore directory exists
+    os.makedirs("/etc/cocore", exist_ok=True)
+    os.makedirs("/etc/cocore/certificates", exist_ok=True)
 
     # Save the token for later use
-    with open(os.path.join(etc_cocore_dir, "tokenfile"), "w") as token_file:
+    with open("/etc/cocore/tokenfile", "w") as token_file:
         token_file.write(token)
+
+    # Move certificates to the correct location
+    os.rename(key_path, "/etc/cocore/certificates/client.key")
+    os.rename(cert_path, "/etc/cocore/certificates/client.crt")
 
 if __name__ == "__main__":
     main()

@@ -4,7 +4,8 @@ import argparse
 import sys
 import subprocess
 from cryptography.fernet import Fernet
-
+KEYFILE = "auth_key"
+SECRETFILE = "secret.key"
 def generate_key():
     return Fernet.generate_key()
 
@@ -38,9 +39,9 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
-def generate_certificates(cert_dir):
+def generate_certificates():
+    cert_dir = os.path.join(args.workdir, "certificates")
     os.makedirs(cert_dir, exist_ok=True)
-
     key_path = os.path.join(cert_dir, "client.key")
     cert_path = os.path.join(cert_dir, "client.crt")
     csr_path = os.path.join(cert_dir, "client.csr")
@@ -66,14 +67,12 @@ def main():
 
     # Ensure the workdir exists
     os.makedirs(args.workdir, exist_ok=True)
-    os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
-    os.makedirs(os.path.dirname(args.keyfile), exist_ok=True)
 
     # Generate and store the secret key
     key = generate_key()
-    with open(os.path.join(args.workdir, args.secretfile), "wb") as key_file:
+    with open(os.path.join(args.workdir, SECRETFILE), "wb") as key_file:
         key_file.write(key)
-    print(f'Wrote auth key to {os.path.join(args.workdir, args.secretfile)}')
+    print(f'Wrote auth key to {os.path.join(args.workdir, SECRETFILE)}')
 
     # Encrypt the authentication key with the secret key
     cipher_suite = Fernet(key)
@@ -86,16 +85,11 @@ def main():
         sys.exit(1)
 
     # Store the authentication key securely
-    store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
+    store_auth_key(args.key, key, os.path.join(args.workdir, KEYFILE))
     print("Authentication key stored securely.")
 
-    # Ensure the /etc/cocore directory exists
-    os.makedirs("/etc/cocore", exist_ok=True)
-    cert_dir = "/etc/cocore/certificates"
-    os.makedirs(cert_dir, exist_ok=True)
-
     # Generate client-side certificates directly in the correct location
-    key_path, cert_path = generate_certificates(cert_dir)
+    key_path, cert_path = generate_certificates()
     print(f"Generated client certificates at {key_path} and {cert_path}")
 
     # Save the token for later use

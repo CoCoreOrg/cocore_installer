@@ -95,14 +95,14 @@ def main():
     print(f"Generated client certificates at {cert_dir}")
 
     # Ensure the /etc/cocore directory exists
-    os.makedirs("/etc/cocore", exist_ok=True)
+    os.makedirs(os.path.join(args.workdir, "/etc/cocore"), exist_ok=True)
 
     # Move the certificates directory to /etc/cocore
-    subprocess.run(['cp', '-r', cert_dir, '/etc/cocore/'], check=True)
+    subprocess.run(['cp', '-r', cert_dir, os.path.join(args.workdir, "/etc/cocore")], check=True)
     print(f"Copied certificates to /etc/cocore/")
 
     # Save the token for later use
-    with open("/etc/cocore/tokenfile", "w") as token_file:
+    with open(os.path.join(args.workdir, "/etc/cocore/tokenfile"), "w") as token_file:
         token_file.write(token)
 
 if __name__ == "__main__":

@@ -6,15 +6,17 @@ import subprocess
 from cryptography.fernet import Fernet
 KEYFILE = "auth_key"
 SECRETFILE = "secret.key"
+
 def generate_key():
     return Fernet.generate_key()
 
-def store_auth_key(auth_key, key):
+def store_auth_key(auth_key, key, mount_point, cocore_directory):
     cipher_suite = Fernet(key)
     encrypted_key = cipher_suite.encrypt(auth_key.encode())
 
-    os.makedirs(os.path.join(args.mount_point, KEYFILE), exist_ok=True)
-    with open(os.path.join(args.mount_point, KEYFILE), "wb") as file:
+    directory = os.path.join(mount_point, cocore_directory)
+    os.makedirs(directory, exist_ok=True)
+    with open(os.path.join(directory, KEYFILE), "wb") as file:
         file.write(encrypted_key)
 
 def validate_host(auth_key, encrypted_auth_key):
@@ -39,8 +41,8 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
-def generate_certificates(mount_point):
-    cert_dir = os.path.join(mount_point, "certificates")
+def generate_certificates(mount_point, cocore_directory):
+    cert_dir = os.path.join(mount_point, cocore_directory, "certificates")
     os.makedirs(cert_dir, exist_ok=True)
 
     key_path = os.path.join(cert_dir, "client.key")
@@ -90,11 +92,11 @@ def main():
         sys.exit(1)
 
     # Store the authentication key securely
-    store_auth_key(args.key, key)
+    store_auth_key(args.key, key, args.mount_point, args.cocore_directory)
     print("Authentication key stored securely.")
 
     # Generate client-side certificates
-    cert_dir = generate_certificates(args.mount_point)
+    cert_dir = generate_certificates(args.mount_point, args.cocore_directory)
     print(f"Generated client certificates at {cert_dir}")
 
     # Ensure the args.cocore_directory directory exists

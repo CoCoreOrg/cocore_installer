@@ -6,7 +6,7 @@ import time
 
 FIRECRACKER_BIN = "/usr/local/bin/firecracker"
 FIRECRACKER_SOCKET = "/tmp/firecracker.socket"
-FIRECRACKER_CONFIG_PATH = '/root/cocore_installer/cocore_installer/firecracker_config.json'
+FIRECRACKER_CONFIG_PATH = './firecracker_config.json'
 TAP_DEVICE = "tap0"
 TAP_IP = "172.16.0.1"
 TOKEN_PATH = "/etc/cocore/tokenfile"

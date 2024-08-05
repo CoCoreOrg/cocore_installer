@@ -12,7 +12,6 @@ MOUNT_POINT="mnt"
 TASK_WORKER_SCRIPT="cocore_installer/task_worker.py"
 API_SOCKET="/tmp/firecracker.socket"
 LOGFILE="./cocore_installer/firecracker.log"
-COCORE_DIR="/etc/cocore"
 
 # Prerequisites
 echo "Checking KVM module..."
@@ -115,8 +114,8 @@ while true; do
 
     if cocore-store-auth-key \
         --key "$auth_key" \
-        --mount_point "${MOUNT_POINT}" \
-        --cocore_directory "${COCORE_DIR}" \
+        --keyfile "${MOUNT_POINT}/etc/cocore/auth_key" \
+        --secretfile "${MOUNT_POINT}/etc/cocore/secret.key" \
         --workdir "$(pwd)"; then
         break
     else
@@ -139,7 +138,7 @@ ExecStart=/root/init.sh
 [Install]
 WantedBy=multi-user.target
 EOF
-sudo systemctl --root=$MOUNT_POINT enable cocore.service
+systemctl --root=$MOUNT_POINT enable cocore.service
 
 sudo umount $MOUNT_POINT
 rm -rf $MOUNT_POINT

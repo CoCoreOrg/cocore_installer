@@ -4,19 +4,16 @@ import argparse
 import sys
 import subprocess
 from cryptography.fernet import Fernet
-KEYFILE = "auth_key"
-SECRETFILE = "secret.key"
 
 def generate_key():
     return Fernet.generate_key()
 
-def store_auth_key(auth_key, key, mount_point, cocore_directory):
+def store_auth_key(auth_key, key, keyfile):
     cipher_suite = Fernet(key)
     encrypted_key = cipher_suite.encrypt(auth_key.encode())
 
-    directory = os.path.join(mount_point, cocore_directory)
-    os.makedirs(directory, exist_ok=True)
-    with open(os.path.join(directory, KEYFILE), "wb") as file:
+    os.makedirs(os.path.dirname(keyfile), exist_ok=True)
+    with open(keyfile, "wb") as file:
         file.write(encrypted_key)
 
 def validate_host(auth_key, encrypted_auth_key):
@@ -41,45 +38,24 @@ def validate_host(auth_key, encrypted_auth_key):
         print(response.get("message"))
         return None
 
-def generate_certificates(mount_point, cocore_directory):
-    cert_dir = os.path.join(mount_point, cocore_directory, "certificates")
-    os.makedirs(cert_dir, exist_ok=True)
-
-    key_path = os.path.join(cert_dir, "client.key")
-    cert_path = os.path.join(cert_dir, "client.crt")
-    csr_path = os.path.join(cert_dir, "client.csr")
-
-    # Generate private key
-    subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-out', key_path, '-pkeyopt', 'rsa_keygen_bits:2048'], check=True)
-
-    # Generate CSR (Certificate Signing Request)
-    subprocess.run(['openssl', 'req', '-new', '-key', key_path, '-out', csr_path, '-subj', '/CN=client'], check=True)
-
-    # Self-sign the certificate (for demonstration purposes; in production, you would get this signed by a CA)
-    subprocess.run(['openssl', 'x509', '-req', '-in', csr_path, '-signkey', key_path, '-out', cert_path, '-days', '365'], check=True)
-
-    return cert_dir
-
 def main():
     parser = argparse.ArgumentParser(description="Store the authentication key securely.")
     parser.add_argument('--key', type=str, required=True, help='The authentication key to be stored.')
-    parser.add_argument('--mount_point', type=str, required=True, help='Mount point for CoCore')
-    parser.add_argument('--cocore_directory', type=str, required=True, help='Settings directory for CoCore')
+    parser.add_argument('--keyfile', type=str, required=True, help='Where to store the authentication key')
+    parser.add_argument('--secretfile', type=str, required=True, help='Where to store the secret key')
     parser.add_argument('--workdir', type=str, required=True, help='Current working directory')
     args = parser.parse_args()
-    
+
     # Ensure the workdir exists
     os.makedirs(args.workdir, exist_ok=True)
-    os.makedirs(args.mount_point, exist_ok=True)
-    os.makedirs(os.path.join(args.mount_point, "certificates"), exist_ok=True)
-    os.makedirs(os.path.join(args.mount_point, os.path.dirname(SECRETFILE)), exist_ok=True)
-    os.makedirs(os.path.join(args.mount_point, os.path.dirname(KEYFILE)), exist_ok=True)
+    os.makedirs(os.path.dirname(args.secretfile), exist_ok=True)
+    os.makedirs(os.path.dirname(args.keyfile), exist_ok=True)
 
     # Generate and store the secret key
     key = generate_key()
-    with open(os.path.join(args.mount_point, SECRETFILE), "wb") as key_file:
+    with open(os.path.join(args.workdir, args.secretfile), "wb") as key_file:
         key_file.write(key)
-    print(f'Wrote auth key to {os.path.join(args.mount_point, SECRETFILE)}')
+    print(f'Wrote auth key to {os.path.join(args.workdir, args.secretfile)}')
 
     # Encrypt the authentication key with the secret key
     cipher_suite = Fernet(key)
@@ -92,22 +68,14 @@ def main():
         sys.exit(1)
 
     # Store the authentication key securely
-    store_auth_key(args.key, key, args.mount_point, args.cocore_directory)
+    store_auth_key(args.key, key, os.path.join(args.workdir, args.keyfile))
     print("Authentication key stored securely.")
 
-    # Generate client-side certificates
-    cert_dir = generate_certificates(args.mount_point, args.cocore_directory)
-    print(f"Generated client certificates at {cert_dir}")
+    # Ensure the /etc/cocore directory exists
+    os.makedirs("/etc/cocore", exist_ok=True)
 
-    # Ensure the args.cocore_directory directory exists
-    os.makedirs(os.path.join(args.mount_point, args.cocore_directory), exist_ok=True)
-
-    # # Move the certificates directory to args.cocore_directory
-    # subprocess.run(['cp', '-r', cert_dir, os.path.join(args.mount_point, args.cocore_directory)], check=True)
-    # print(f"Copied certificates to {os.path.join(args.mount_point, args.cocore_directory)}")
-    #
     # Save the token for later use
-    with open(os.path.join(args.mount_point, args.cocore_directory, "tokenfile"), "w") as token_file:
+    with open("/etc/cocore/tokenfile", "w") as token_file:
         token_file.write(token)
 
 if __name__ == "__main__":

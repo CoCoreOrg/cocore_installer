@@ -45,6 +45,8 @@ async def connect_and_subscribe(auth_type):
             }
             await websocket.send(json.dumps(subscribe_message))
 
+            subscription_id = None
+
             # Wait for the subscription confirmation
             while True:
                 response = await websocket.recv()
@@ -53,21 +55,24 @@ async def connect_and_subscribe(auth_type):
 
                 if response_data.get("type") == "confirm_subscription":
                     print("Subscription confirmed.")
+                    subscription_id = response_data.get("identifier")
                     break
 
-            # Send the ping command after subscription confirmation
-            ping_message = {
-                "command": "message",
-                "identifier": json.dumps({"channel": "HostChannel"}),
-                "data": json.dumps({"action": "ping"})
-            }
-            await websocket.send(json.dumps(ping_message))
-            response = await websocket.recv()
-            print(f"Received: {response}")
+            # Ensure subscription ID is tracked and used
+            if subscription_id:
+                # Send the ping command after subscription confirmation
+                ping_message = {
+                    "command": "message",
+                    "identifier": subscription_id,
+                    "data": json.dumps({"action": "ping"})
+                }
+                await websocket.send(json.dumps(ping_message))
+                response = await websocket.recv()
+                print(f"Received: {response}")
 
-            if json.loads(response).get("type") == "pong":
-                print("Ping test succeeded.")
-                return websocket
+                if json.loads(response).get("type") == "pong":
+                    print("Ping test succeeded.")
+                    return websocket
     except Exception as e:
         print(f"Connection failed: {e}")
     return None

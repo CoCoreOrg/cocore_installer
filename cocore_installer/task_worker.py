@@ -23,7 +23,7 @@ def load_auth_key():
     return cipher_suite.decrypt(encrypted_key).decode()
 
 async def ping_test():
-    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context = ssl.create_default_context()
     ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
     ssl_context.verify_mode = ssl.CERT_REQUIRED
@@ -57,7 +57,7 @@ async def process_task(task):
     sys.stderr.flush()
 
 async def task_listener():
-    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context = ssl.create_default_context()
     ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
     ssl_context.verify_mode = ssl.CERT_REQUIRED

@@ -8,7 +8,7 @@ from cryptography.fernet import Fernet
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
-WEBSOCKET_SERVER = "wss://cocore.io/cable"  # Updated to use /cable for secure connection
+WEBSOCKET_SERVER = "wss://cocore.io/cable"
 CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
@@ -22,7 +22,7 @@ def load_auth_key():
         encrypted_key = file.read()
     return cipher_suite.decrypt(encrypted_key).decode()
 
-async def ping_test():
+async def ping_test(auth_type):
     ssl_context = ssl.create_default_context()
     ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
@@ -30,7 +30,8 @@ async def ping_test():
 
     auth_key = load_auth_key()
     headers = {
-        "Authorization": f"Bearer {auth_key}"
+        "Authorization": f"Bearer {auth_key}",
+        "Auth-Type": auth_type
     }
 
     try:
@@ -61,7 +62,7 @@ async def process_task(task):
     sys.stdout.flush()
     sys.stderr.flush()
 
-async def task_listener():
+async def task_listener(auth_type):
     ssl_context = ssl.create_default_context()
     ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
@@ -69,7 +70,8 @@ async def task_listener():
 
     auth_key = load_auth_key()
     headers = {
-        "Authorization": f"Bearer {auth_key}"
+        "Authorization": f"Bearer {auth_key}",
+        "Auth-Type": auth_type
     }
 
     async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
@@ -82,12 +84,13 @@ async def task_listener():
             task = json.loads(task)
             await process_task(task['command'])
 
-async def main():
-    ping_successful = await ping_test()
+async def main(auth_type):
+    ping_successful = await ping_test(auth_type)
     if ping_successful:
-        await task_listener()
+        await task_listener(auth_type)
     else:
         print("Ping test failed. Exiting.")
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    auth_type = "host"  # or "user" based on your context
+    asyncio.get_event_loop().run_until_complete(main(auth_type))

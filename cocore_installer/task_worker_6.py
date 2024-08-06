@@ -34,40 +34,40 @@ async def connect_and_subscribe(auth_type):
     }
 
     try:
-        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
-            print("Connected to WebSocket server")
+        websocket = await websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers)
+        print("Connected to WebSocket server")
 
-            # Subscribe to the HostChannel
-            subscribe_message = {
-                "command": "subscribe",
-                "identifier": json.dumps({"channel": "HostChannel"})
-            }
-            await websocket.send(json.dumps(subscribe_message))
+        # Subscribe to the HostChannel
+        subscribe_message = {
+            "command": "subscribe",
+            "identifier": json.dumps({"channel": "HostChannel"})
+        }
+        await websocket.send(json.dumps(subscribe_message))
 
-            # Wait for the subscription confirmation
-            while True:
-                response = await websocket.recv()
-                print(f"Received: {response}")
-                response_data = json.loads(response)
-
-                if response_data.get("type") == "confirm_subscription":
-                    print("Subscription confirmed.")
-                    subscription_id = response_data.get("identifier")
-                    break
-
-            # Send the ping command after subscription confirmation
-            ping_message = {
-                "command": "message",
-                "identifier": subscription_id,
-                "data": json.dumps({"action": "ping"})
-            }
-            await websocket.send(json.dumps(ping_message))
+        # Wait for the subscription confirmation
+        while True:
             response = await websocket.recv()
             print(f"Received: {response}")
+            response_data = json.loads(response)
 
-            if json.loads(response).get("message", {}).get("type") == "pong":
-                print("Ping test succeeded.")
-                return websocket, subscription_id
+            if response_data.get("type") == "confirm_subscription":
+                print("Subscription confirmed.")
+                subscription_id = response_data.get("identifier")
+                break
+
+        # Send the ping command after subscription confirmation
+        ping_message = {
+            "command": "message",
+            "identifier": subscription_id,
+            "data": json.dumps({"action": "ping"})
+        }
+        await websocket.send(json.dumps(ping_message))
+        response = await websocket.recv()
+        print(f"Received: {response}")
+
+        if json.loads(response).get("message", {}).get("type") == "pong":
+            print("Ping test succeeded.")
+            return websocket, subscription_id
     except Exception as e:
         print(f"Connection failed: {e}")
     return None, None
@@ -99,17 +99,16 @@ async def task_listener(auth_type):
         print('\nVM is ready to accept tasks. :)\n')
         sys.stdout.flush()
 
-        async with websocket:
-            try:
-                async for message in websocket:
-                    print('Got message: ' + message)
-                    task = json.loads(message)
-                    await process_task(websocket, subscription_id, task['command'])
-            except websockets.ConnectionClosed:
-                print("Connection closed, reconnecting...")
-                await asyncio.sleep(1)
-            except Exception as e:
-                print(f"Error processing task: {e}")
+        try:
+            async for message in websocket:
+                print('Got message: ' + message)
+                task = json.loads(message)
+                await process_task(websocket, subscription_id, task['command'])
+        except websockets.ConnectionClosed:
+            print("Connection closed, reconnecting...")
+            await asyncio.sleep(1)
+        except Exception as e:
+            print(f"Error processing task: {e}")
 
 async def main(auth_type):
     await task_listener(auth_type)

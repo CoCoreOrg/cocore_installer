@@ -34,48 +34,41 @@ async def connect_and_subscribe(auth_type):
         "Auth-Type": auth_type
     }
 
-    try:
-        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
-            print("Connected to WebSocket server")
+    async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
+        print("Connected to WebSocket server")
 
-            # Subscribe to the HostChannel
-            subscribe_message = {
-                "command": "subscribe",
-                "identifier": json.dumps({"channel": "HostChannel"})
-            }
-            await websocket.send(json.dumps(subscribe_message))
+        # Subscribe to the HostChannel
+        subscribe_message = {
+            "command": "subscribe",
+            "identifier": json.dumps({"channel": "HostChannel"})
+        }
+        await websocket.send(json.dumps(subscribe_message))
 
-            subscription_id = None
+        # Wait for the subscription confirmation
+        while True:
+            response = await websocket.recv()
+            print(f"Received: {response}")
+            response_data = json.loads(response)
 
-            # Wait for the subscription confirmation
-            while True:
-                response = await websocket.recv()
-                print(f"Received: {response}")
-                response_data = json.loads(response)
+            if response_data.get("type") == "confirm_subscription":
+                print("Subscription confirmed.")
+                subscription_id = response_data.get("identifier")
+                break
 
-                if response_data.get("type") == "confirm_subscription":
-                    print("Subscription confirmed.")
-                    subscription_id = response_data.get("identifier")
-                    break
+        # Send the ping command after subscription confirmation
+        ping_message = {
+            "command": "message",
+            "identifier": subscription_id,
+            "data": json.dumps({"action": "ping"})
+        }
+        await websocket.send(json.dumps(ping_message))
+        response = await websocket.recv()
+        print(f"Received: {response}")
 
-            # Ensure subscription ID is tracked and used
-            if subscription_id:
-                # Send the ping command after subscription confirmation
-                ping_message = {
-                    "command": "message",
-                    "identifier": subscription_id,
-                    "data": json.dumps({"action": "ping"})
-                }
-                await websocket.send(json.dumps(ping_message))
-                response = await websocket.recv()
-                print(f"Received: {response}")
-
-                if json.loads(response).get("type") == "pong":
-                    print("Ping test succeeded.")
-                    return websocket
-    except Exception as e:
-        print(f"Connection failed: {e}")
-    return None
+        if json.loads(response).get("type") == "pong":
+            print("Ping test succeeded.")
+            return websocket, subscription_id
+    return None, None
 
 async def process_task(task):
     print(f"Processing task: {task}")
@@ -94,7 +87,7 @@ async def process_task(task):
     sys.stderr.flush()
 
 async def task_listener(auth_type):
-    websocket = await connect_and_subscribe(auth_type)
+    websocket, subscription_id = await connect_and_subscribe(auth_type)
     if not websocket:
         print("Exiting due to unsuccessful WebSocket connection.")
         return
@@ -102,21 +95,22 @@ async def task_listener(auth_type):
     print('\nVM is ready to accept tasks. :)\n')
     sys.stdout.flush()
 
-    while True:
-        try:
-            task = await websocket.recv()
-            print('Got task: ' + task)
-            task = json.loads(task)
-            await process_task(task['command'])
-        except websockets.ConnectionClosed:
-            print("Connection closed, reconnecting...")
-            await asyncio.sleep(1)
-            websocket = await connect_and_subscribe(auth_type)
-            if not websocket:
-                print("Exiting due to unsuccessful WebSocket reconnection.")
-                return
-        except Exception as e:
-            print(f"Error processing task: {e}")
+    async with websocket:
+        while True:
+            try:
+                task = await websocket.recv()
+                print('Got task: ' + task)
+                task = json.loads(task)
+                await process_task(task['command'])
+            except websockets.ConnectionClosed:
+                print("Connection closed, reconnecting...")
+                await asyncio.sleep(1)
+                websocket, subscription_id = await connect_and_subscribe(auth_type)
+                if not websocket:
+                    print("Exiting due to unsuccessful WebSocket reconnection.")
+                    return
+            except Exception as e:
+                print(f"Error processing task: {e}")
 
 async def main(auth_type):
     await task_listener(auth_type)

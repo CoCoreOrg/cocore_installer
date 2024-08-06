@@ -64,7 +64,7 @@ async def connect_and_subscribe(auth_type):
             response = await websocket.recv()
             print(f"Received: {response}")
 
-            if json.loads(response).get("type") == "pong":
+            if json.loads(response).get("message", {}).get("type") == "pong":
                 print("Ping test succeeded.")
                 return websocket, subscription_id
     except Exception as e:

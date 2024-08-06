@@ -8,7 +8,7 @@ from cryptography.fernet import Fernet
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
-WEBSOCKET_SERVER = "wss://cocore.io:3001/vm"
+WEBSOCKET_SERVER = "wss://cocore.io:80/vm"
 CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"

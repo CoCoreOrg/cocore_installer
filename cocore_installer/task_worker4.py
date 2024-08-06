@@ -44,10 +44,18 @@ async def connect_and_subscribe(auth_type):
                 "identifier": json.dumps({"channel": "HostChannel"})
             }
             await websocket.send(json.dumps(subscribe_message))
-            response = await websocket.recv()
-            print(f"Subscription response: {response}")
 
-            # Send the ping command after subscription
+            # Wait for the subscription confirmation
+            while True:
+                response = await websocket.recv()
+                print(f"Received: {response}")
+                response_data = json.loads(response)
+
+                if response_data.get("type") == "confirm_subscription":
+                    print("Subscription confirmed.")
+                    break
+
+            # Send the ping command after subscription confirmation
             ping_message = {
                 "command": "message",
                 "identifier": json.dumps({"channel": "HostChannel"}),
@@ -58,17 +66,55 @@ async def connect_and_subscribe(auth_type):
             print(f"Received: {response}")
 
             if json.loads(response).get("type") == "pong":
-                return True
+                print("Ping test succeeded.")
+                return websocket
     except Exception as e:
         print(f"Connection failed: {e}")
-    return False
+    return None
+
+async def process_task(task):
+    print(f"Processing task: {task}")
+    proc = await asyncio.create_subprocess_exec(
+        'bash',
+        '-c',
+        task,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+    stdout, stderr = await proc.communicate()
+    if stdout:
+        print(stdout.decode())
+    if stderr:
+        print('\n\n == STDERR ==\n' + stderr.decode())
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+async def task_listener(auth_type):
+    websocket = await connect_and_subscribe(auth_type)
+    if not websocket:
+        print("Exiting due to unsuccessful WebSocket connection.")
+        return
+
+    print('\nVM is ready to accept tasks. :)\n')
+    sys.stdout.flush()
+
+    while True:
+        try:
+            task = await websocket.recv()
+            print('Got task: ' + task)
+            task = json.loads(task)
+            await process_task(task['command'])
+        except websockets.ConnectionClosed:
+            print("Connection closed, reconnecting...")
+            await asyncio.sleep(1)
+            websocket = await connect_and_subscribe(auth_type)
+            if not websocket:
+                print("Exiting due to unsuccessful WebSocket reconnection.")
+                return
+        except Exception as e:
+            print(f"Error processing task: {e}")
 
 async def main(auth_type):
-    ping_successful = await connect_and_subscribe(auth_type)
-    if ping_successful:
-        print("Ping test succeeded.")
-    else:
-        print("Ping test failed. Exiting.")
+    await task_listener(auth_type)
 
 if __name__ == "__main__":
     auth_type = "host"  # or "user" based on your context

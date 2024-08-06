@@ -2,7 +2,7 @@ import asyncio
 import websockets
 import json
 
-WEBSOCKET_SERVER = "ws://cocore.io/cable"  # Insecure WebSocket URL
+WEBSOCKET_SERVER = "ws://cocore.io:80/cable"  # Insecure WebSocket URL with explicit port 80
 
 async def test_websocket():
     async with websockets.connect(WEBSOCKET_SERVER) as websocket:

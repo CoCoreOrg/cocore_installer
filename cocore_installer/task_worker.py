@@ -1,9 +1,7 @@
-import time
-import json
 import asyncio
-import websockets
+import json
 import ssl
-import sys
+import websockets
 from cryptography.fernet import Fernet
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
@@ -34,41 +32,44 @@ async def connect_and_subscribe(auth_type):
         "Auth-Type": auth_type
     }
 
-    async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
-        print("Connected to WebSocket server")
+    try:
+        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
+            print("Connected to WebSocket server")
 
-        # Subscribe to the HostChannel
-        subscribe_message = {
-            "command": "subscribe",
-            "identifier": json.dumps({"channel": "HostChannel"})
-        }
-        await websocket.send(json.dumps(subscribe_message))
+            # Subscribe to the HostChannel
+            subscribe_message = {
+                "command": "subscribe",
+                "identifier": json.dumps({"channel": "HostChannel"})
+            }
+            await websocket.send(json.dumps(subscribe_message))
 
-        # Wait for the subscription confirmation
-        while True:
+            # Wait for the subscription confirmation
+            while True:
+                response = await websocket.recv()
+                print(f"Received: {response}")
+                response_data = json.loads(response)
+
+                if response_data.get("type") == "confirm_subscription":
+                    print("Subscription confirmed.")
+                    subscription_id = response_data.get("identifier")
+                    break
+
+            # Send the ping command after subscription confirmation
+            ping_message = {
+                "command": "message",
+                "identifier": subscription_id,
+                "data": json.dumps({"action": "ping"})
+            }
+            await websocket.send(json.dumps(ping_message))
             response = await websocket.recv()
             print(f"Received: {response}")
-            response_data = json.loads(response)
 
-            if response_data.get("type") == "confirm_subscription":
-                print("Subscription confirmed.")
-                subscription_id = response_data.get("identifier")
-                break
-
-        # Send the ping command after subscription confirmation
-        ping_message = {
-            "command": "message",
-            "identifier": subscription_id,
-            "data": json.dumps({"action": "ping"})
-        }
-        await websocket.send(json.dumps(ping_message))
-        response = await websocket.recv()
-        print(f"Received: {response}")
-
-        if json.loads(response).get("type") == "pong":
-            print("Ping test succeeded.")
-            return websocket, subscription_id
-    return None, None
+            if json.loads(response).get("type") == "pong":
+                print("Ping test succeeded.")
+                return websocket
+    except Exception as e:
+        print(f"Connection failed: {e}")
+    return None
 
 async def process_task(task):
     print(f"Processing task: {task}")
@@ -87,34 +88,29 @@ async def process_task(task):
     sys.stderr.flush()
 
 async def task_listener(auth_type):
-    websocket, subscription_id = await connect_and_subscribe(auth_type)
-    if not websocket:
-        print("Exiting due to unsuccessful WebSocket connection.")
-        return
+    while True:
+        websocket = await connect_and_subscribe(auth_type)
+        if not websocket:
+            print("Exiting due to unsuccessful WebSocket connection.")
+            return
 
-    print('\nVM is ready to accept tasks. :)\n')
-    sys.stdout.flush()
+        print('\nVM is ready to accept tasks. :)\n')
+        sys.stdout.flush()
 
-    async with websocket:
-        while True:
-            try:
-                task = await websocket.recv()
-                print('Got task: ' + task)
-                task = json.loads(task)
+        try:
+            async for message in websocket:
+                print('Got message: ' + message)
+                task = json.loads(message)
                 await process_task(task['command'])
-            except websockets.ConnectionClosed:
-                print("Connection closed, reconnecting...")
-                await asyncio.sleep(1)
-                websocket, subscription_id = await connect_and_subscribe(auth_type)
-                if not websocket:
-                    print("Exiting due to unsuccessful WebSocket reconnection.")
-                    return
-            except Exception as e:
-                print(f"Error processing task: {e}")
+        except websockets.ConnectionClosed:
+            print("Connection closed, reconnecting...")
+            await asyncio.sleep(1)
+        except Exception as e:
+            print(f"Error processing task: {e}")
 
 async def main(auth_type):
     await task_listener(auth_type)
 
 if __name__ == "__main__":
     auth_type = "host"  # or "user" based on your context
-    asyncio.get_event_loop().run_until_complete(main(auth_type))
+    asyncio.run(main(auth_type))

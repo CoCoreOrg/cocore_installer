@@ -27,12 +27,17 @@ async def ping_test():
     ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
     ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+    auth_key = load_auth_key()
+    headers = {
+        "Authorization": f"Bearer {auth_key}"
+    }
+
     try:
-        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context) as websocket:
+        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
             print("Connected to WebSocket server")
             await websocket.send(json.dumps({"type": "ping"}))
             response = await websocket.recv()
-            import code;code.interact(local=dict(globals(), **locals())) 
             print(f"Received: {response}")
             if json.loads(response).get("type") == "pong":
                 return True
@@ -62,7 +67,12 @@ async def task_listener():
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
     ssl_context.verify_mode = ssl.CERT_REQUIRED
 
-    async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context) as websocket:
+    auth_key = load_auth_key()
+    headers = {
+        "Authorization": f"Bearer {auth_key}"
+    }
+
+    async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
         print('\nVM is ready to accept tasks. :)\n')
         sys.stdout.flush()
 
@@ -73,7 +83,6 @@ async def task_listener():
             await process_task(task['command'])
 
 async def main():
-    auth_key = load_auth_key()
     ping_successful = await ping_test()
     if ping_successful:
         await task_listener()

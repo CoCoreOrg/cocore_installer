@@ -102,8 +102,15 @@ async def task_listener(auth_type):
         try:
             async for message in websocket:
                 print('Got message: ' + message)
-                task = json.loads(message)
-                await process_task(websocket, subscription_id, task['command'])
+                response_data = json.loads(message)
+                if response_data.get("type") == "ping":
+                    # Handle ping message
+                    print(f"Ping message received: {response_data['message']}")
+                elif "command" in response_data:
+                    # Process task if it has a command key
+                    await process_task(websocket, subscription_id, response_data["command"])
+                else:
+                    print(f"Unhandled message type: {response_data}")
         except websockets.ConnectionClosed:
             print("Connection closed, reconnecting...")
             await asyncio.sleep(1)

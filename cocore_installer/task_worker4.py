@@ -37,7 +37,7 @@ async def ping_test(auth_type):
     try:
         async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
             print("Connected to WebSocket server")
-            await websocket.send(json.dumps({"type": "ping"}))
+            await websocket.send(json.dumps({"command": "ping"}))
             response = await websocket.recv()
             print(f"Received: {response}")
             if json.loads(response).get("type") == "pong":

@@ -66,30 +66,31 @@ async def connect_and_subscribe(auth_type):
 
             if json.loads(response).get("type") == "pong":
                 print("Ping test succeeded.")
-                return websocket
+                return websocket, subscription_id
     except Exception as e:
         print(f"Connection failed: {e}")
-    return None
+    return None, None
 
-async def process_task(task):
+async def process_task(websocket, subscription_id, task):
     print(f"Processing task: {task}")
-    proc = await asyncio.create_subprocess_exec(
-        'bash',
-        '-c',
-        task,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
-    stdout, stderr = await proc.communicate()
-    if stdout:
-        print(stdout.decode())
-    if stderr:
-        print('\n\n == STDERR ==\n' + stderr.decode())
-    sys.stdout.flush()
-    sys.stderr.flush()
+    try:
+        # Send task processing command to the server
+        task_message = {
+            "command": "message",
+            "identifier": subscription_id,
+            "data": json.dumps({"action": "execute_task", "task": task})
+        }
+        await websocket.send(json.dumps(task_message))
+
+        # Wait for the server's response
+        response = await websocket.recv()
+        print(f"Received: {response}")
+    except Exception as e:
+        print(f"Error processing task: {e}")
 
 async def task_listener(auth_type):
     while True:
-        websocket = await connect_and_subscribe(auth_type)
+        websocket, subscription_id = await connect_and_subscribe(auth_type)
         if not websocket:
             print("Exiting due to unsuccessful WebSocket connection.")
             return
@@ -97,16 +98,17 @@ async def task_listener(auth_type):
         print('\nVM is ready to accept tasks. :)\n')
         sys.stdout.flush()
 
-        try:
-            async for message in websocket:
-                print('Got message: ' + message)
-                task = json.loads(message)
-                await process_task(task['command'])
-        except websockets.ConnectionClosed:
-            print("Connection closed, reconnecting...")
-            await asyncio.sleep(1)
-        except Exception as e:
-            print(f"Error processing task: {e}")
+        async with websocket:
+            try:
+                async for message in websocket:
+                    print('Got message: ' + message)
+                    task = json.loads(message)
+                    await process_task(websocket, subscription_id, task['command'])
+            except websockets.ConnectionClosed:
+                print("Connection closed, reconnecting...")
+                await asyncio.sleep(1)
+            except Exception as e:
+                print(f"Error processing task: {e}")
 
 async def main(auth_type):
     await task_listener(auth_type)

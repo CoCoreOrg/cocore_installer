@@ -27,7 +27,7 @@ async def ping_test():
     ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
     ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
     ssl_context.verify_mode = ssl.CERT_REQUIRED
-
+    import code;code.interact(local=dict(globals(), **locals())) 
     try:
         async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context) as websocket:
             print("Connected to WebSocket server")

@@ -74,15 +74,23 @@ async def task_listener(auth_type):
         "Auth-Type": auth_type
     }
 
-    async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
-        print('\nVM is ready to accept tasks. :)\n')
-        sys.stdout.flush()
+    try:
+        async with websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers) as websocket:
+            print('\nVM is ready to accept tasks. :)\n')
+            sys.stdout.flush()
 
-        while True:
-            task = await websocket.recv()
-            print('Got task: ' + task)
-            task = json.loads(task)
-            await process_task(task['command'])
+            while True:
+                try:
+                    task = await websocket.recv()
+                    print('Got task: ' + task)
+                    task = json.loads(task)
+                    await process_task(task['command'])
+                except websockets.ConnectionClosed:
+                    print("Connection closed, reconnecting...")
+                    await asyncio.sleep(1)
+                    break
+    except Exception as e:
+        print(f"Connection failed: {e}")
 
 async def main(auth_type):
     ping_successful = await ping_test(auth_type)

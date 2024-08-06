@@ -103,7 +103,6 @@ async def task_listener(auth_type):
             async for message in websocket:
                 print('Got message: ' + message)
                 response_data = json.loads(message)
-                import code;code.interact(local=dict(globals(), **locals())) 
                 if response_data.get("type") == "ping":
                     # Handle ping message
                     print(f"Ping message received: {response_data['message']}")

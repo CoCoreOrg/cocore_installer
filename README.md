@@ -61,7 +61,7 @@ When you are finished with the VM, run `reboot` to shut it down.
 To completely remove CoCore and all its components from your system, run the following uninstall script. This will delete all dependencies, uninstall Firecracker, remove any disk data and mounted images created during the installation, and reset the machine to its pre-installation state.
 
 ```bash
-bash cocore_installer/uninstall_cocore.sh
+bash cocore_installer/uninstall.sh
 ```
 
 This will:

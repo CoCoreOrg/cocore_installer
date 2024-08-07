@@ -159,7 +159,7 @@ async def task_listener(auth_type):
                 if response_data.get("type") == "ping":
                     # Handle ping message
                     print(f"Ping message received: {response_data['message']}")
-                elif response_data.get("type") == "execute_task":
+                elif response_data.get("message", {}).get("type") == "execute_task":
                     # Process task execution
                     execution_id = response_data.get("execution_id")
                     await process_task_execution(execution_id)

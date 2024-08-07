@@ -2,6 +2,7 @@ import sys
 import asyncio
 import json
 import ssl
+import requests
 import websockets
 from cryptography.fernet import Fernet
 
@@ -72,22 +73,48 @@ async def connect_and_subscribe(auth_type):
         print(f"Connection failed: {e}")
     return None, None
 
-async def process_task(websocket, subscription_id, task):
-    print(f"Processing task: {task}")
-    try:
-        # Send task processing command to the server
-        task_message = {
-            "command": "message",
-            "identifier": subscription_id,
-            "data": json.dumps({"action": "execute_task", "task": task})
-        }
-        await websocket.send(json.dumps(task_message))
+async def fetch_task_execution(execution_id):
+    url = f"https://cocore.io/task_executions/{execution_id}.json"
+    headers = {
+        "Authorization": f"Bearer {load_auth_key()}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Failed to fetch task execution: {response.status_code}")
 
-        # Wait for the server's response
-        response = await websocket.recv()
-        print(f"Received: {response}")
-    except Exception as e:
-        print(f"Error processing task: {e}")
+def run_task(task_code, args):
+    local_scope = {}
+    exec(task_code, {}, local_scope)
+    if 'run' in local_scope:
+        return local_scope['run'](*args)
+    else:
+        raise Exception("No 'run' function found in task code")
+
+async def process_task_execution(execution_id):
+    task_execution = await fetch_task_execution(execution_id)
+    task_code = task_execution['task']['code']
+    input_args = task_execution['input'] or []
+
+    result = run_task(task_code, input_args)
+
+    # Post the result back to the server
+    result_url = f"https://cocore.io/task_executions/{execution_id}"
+    headers = {
+        "Authorization": f"Bearer {load_auth_key()}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "task_execution": {
+            "output": result
+        }
+    }
+    response = requests.patch(result_url, headers=headers, json=payload)
+    if response.status_code == 200:
+        print("Task result posted successfully")
+    else:
+        print(f"Failed to post task result: {response.status_code}")
 
 async def task_listener(auth_type):
     while True:
@@ -106,9 +133,10 @@ async def task_listener(auth_type):
                 if response_data.get("type") == "ping":
                     # Handle ping message
                     print(f"Ping message received: {response_data['message']}")
-                elif "command" in response_data:
-                    # Process task if it has a command key
-                    await process_task(websocket, subscription_id, response_data["command"])
+                elif response_data.get("type") == "execute_task":
+                    # Process task execution
+                    execution_id = response_data.get("execution_id")
+                    await process_task_execution(execution_id)
                 else:
                     print(f"Unhandled message type: {response_data}")
         except websockets.ConnectionClosed:

@@ -68,19 +68,7 @@ async def connect_and_subscribe(auth_type):
                     subscription_id = response_data.get("identifier")
                     break
 
-            # Send the ping command after subscription confirmation
-            ping_message = {
-                "command": "message",
-                "identifier": subscription_id,
-                "data": json.dumps({"action": "ping"})
-            }
-            await websocket.send(json.dumps(ping_message))
-            response = await websocket.recv()
-            print(f"Received: {response}")
-            response = json.loads(response).get("message", {})
-            if isinstance(response, dict) and response.get("type") == "pong" or isinstance(response, int):
-                print("Ping test succeeded.")
-                return websocket, subscription_id
+            return websocket, subscription_id
         except Exception as e:
             print(f"Connection failed: {e}")
             print(traceback.format_exc())

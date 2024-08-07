@@ -170,6 +170,12 @@ async def task_listener(auth_type):
                 if response_data.get("type") == "ping":
                     # Handle ping message
                     print(f"Ping message received: {response_data['message']}")
+                    # Keep asserting online status
+                    await websocket.send(json.dumps({
+                        "command": "message",
+                        "identifier": subscription_id,
+                        "data": json.dumps({"action": "ping"})
+                    }))
                 elif response_data.get("message", {}).get("type") == "execute_task":
                     # Process task execution
                     execution_id = response_data.get("message", {}).get("execution_id")

@@ -209,6 +209,7 @@ async def task_listener(auth_type):
                     await process_task_execution(execution_id)
                 else:
                     print(f"Unhandled message type: {response_data}")
+                await process_all_pending_tasks()
         except websockets.ConnectionClosed:
             print("Connection closed, reconnecting...")
             keep_alive_task.cancel()

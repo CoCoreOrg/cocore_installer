@@ -203,7 +203,8 @@ async def task_listener(auth_type):
             async for message in websocket:
                 print('Got message: ' + message)
                 response_data = json.loads(message)
-                if response_data.get("message", {}).get("type") == "execute_task":
+                message = response_data.get("message", {})
+                if isinstance(message, dict) and message.get("type") == "execute_task":
                     execution_id = response_data.get("message", {}).get("execution_id")
                     await process_task_execution(execution_id)
                 else:

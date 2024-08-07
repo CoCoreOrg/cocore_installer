@@ -6,6 +6,7 @@ import requests
 import websockets
 from cryptography.fernet import Fernet
 import traceback
+import time
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
@@ -101,13 +102,23 @@ def run_task(task_code, args):
         local_scope = {}
         exec(task_code, {}, local_scope)
         if 'run' in local_scope:
-            return local_scope['run'](*args)
+            start_time = time.perf_counter_ns()
+            result = local_scope['run'](*args)
+            end_time = time.perf_counter_ns()
+            execution_time_microseconds = (end_time - start_time) / 1000
+            print(f"Task executed in {execution_time_microseconds} microseconds")
+            return {"result": result, "execution_length": execution_time_microseconds}
         else:
-            raise Exception("No 'run' function found in task code")
+            return {"error": "NoRunFunction", "error_message": "No run() function defined, failed to execute!"}
     except Exception as e:
-        print(f"Error running task: {e}")
-        print(traceback.format_exc())
-        raise
+        error_context = {"error": str(e), "error_message": "Your code failed to complete because of an error.", "error_details": {}}
+        for attr in ["__cause__", "__context__", "args", "__traceback__"]:
+            if attr in dir(e):
+                if attr == "__traceback__":
+                    error_context["error_details"][attr] = '\n'.join(traceback.format_tb(getattr(e, attr)))
+                else:
+                    error_context["error_details"][attr] = str(getattr(e, attr))
+        return error_context
 
 async def process_task_execution(execution_id):
     try:
@@ -124,9 +135,7 @@ async def process_task_execution(execution_id):
             "Content-Type": "application/json"
         }
         payload = {
-            "task_execution": {
-                "output": result
-            }
+            "task_execution": result
         }
         response = requests.patch(result_url, headers=headers, json=payload)
         if response.status_code == 200:

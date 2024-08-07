@@ -171,6 +171,22 @@ async def process_all_pending_tasks():
             print(f"Error processing pending tasks: {e}")
             print(traceback.format_exc())
 
+async def send_keep_alive(websocket, subscription_id, interval=30):
+    while True:
+        try:
+            await asyncio.sleep(interval)  # Adjust the interval as needed
+            keep_alive_message = {
+                "command": "message",
+                "identifier": subscription_id,
+                "data": json.dumps({"action": "keep_alive"})
+            }
+            await websocket.send(json.dumps(keep_alive_message))
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"Error sending keep-alive message: {e}")
+            break
+
 async def task_listener(auth_type):
     while True:
         websocket, subscription_id = await connect_and_subscribe(auth_type)
@@ -181,30 +197,24 @@ async def task_listener(auth_type):
         print('\nVM is ready to accept tasks. :)\n')
         sys.stdout.flush()
 
+        keep_alive_task = asyncio.create_task(send_keep_alive(websocket, subscription_id))
+
         try:
             async for message in websocket:
                 print('Got message: ' + message)
                 response_data = json.loads(message)
-                if response_data.get("type") == "ping":
-                    # Handle ping message
-                    print(f"Ping message received: {response_data['message']}")
-                    # Keep asserting online status
-                    await websocket.send(json.dumps({
-                        "command": "message",
-                        "identifier": subscription_id,
-                        "data": json.dumps({"action": "ping"})
-                    }))
-                elif response_data.get("message", {}).get("type") == "execute_task":
-                    # Process task execution
+                if response_data.get("message", {}).get("type") == "execute_task":
                     execution_id = response_data.get("message", {}).get("execution_id")
                     await process_task_execution(execution_id)
                 else:
                     print(f"Unhandled message type: {response_data}")
         except websockets.ConnectionClosed:
             print("Connection closed, reconnecting...")
+            keep_alive_task.cancel()
             await asyncio.sleep(1)
         except Exception as e:
             print(f"Error processing task: {e}")
+            keep_alive_task.cancel()
             print(traceback.format_exc())
 
 async def main(auth_type):

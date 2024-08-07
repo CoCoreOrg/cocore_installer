@@ -161,7 +161,7 @@ async def task_listener(auth_type):
                     print(f"Ping message received: {response_data['message']}")
                 elif response_data.get("message", {}).get("type") == "execute_task":
                     # Process task execution
-                    execution_id = response_data.get("execution_id")
+                    execution_id = response_data.get("message", {}).get("execution_id")
                     await process_task_execution(execution_id)
                 else:
                     print(f"Unhandled message type: {response_data}")

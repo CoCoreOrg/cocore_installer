@@ -5,6 +5,7 @@ import ssl
 import requests
 import websockets
 from cryptography.fernet import Fernet
+from time import sleep
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
@@ -36,43 +37,53 @@ async def connect_and_subscribe(auth_type):
         "Auth-Type": auth_type
     }
 
-    try:
-        websocket = await websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers)
-        print("Connected to WebSocket server")
+    retry_attempts = 0
+    max_retries = 10
 
-        # Subscribe to the HostChannel
-        subscribe_message = {
-            "command": "subscribe",
-            "identifier": json.dumps({"channel": "HostChannel"})
-        }
-        await websocket.send(json.dumps(subscribe_message))
+    while retry_attempts < max_retries:
+        try:
+            websocket = await websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers)
+            print("Connected to WebSocket server")
 
-        # Wait for the subscription confirmation
-        while True:
+            # Subscribe to the HostChannel
+            subscribe_message = {
+                "command": "subscribe",
+                "identifier": json.dumps({"channel": "HostChannel"})
+            }
+            await websocket.send(json.dumps(subscribe_message))
+
+            # Wait for the subscription confirmation
+            while True:
+                response = await websocket.recv()
+                print(f"Received: {response}")
+                response_data = json.loads(response)
+
+                if response_data.get("type") == "confirm_subscription":
+                    print("Subscription confirmed.")
+                    subscription_id = response_data.get("identifier")
+                    break
+
+            # Send the ping command after subscription confirmation
+            ping_message = {
+                "command": "message",
+                "identifier": subscription_id,
+                "data": json.dumps({"action": "ping"})
+            }
+            await websocket.send(json.dumps(ping_message))
             response = await websocket.recv()
             print(f"Received: {response}")
-            response_data = json.loads(response)
 
-            if response_data.get("type") == "confirm_subscription":
-                print("Subscription confirmed.")
-                subscription_id = response_data.get("identifier")
-                break
+            if json.loads(response).get("message", {}).get("type") == "pong":
+                print("Ping test succeeded.")
+                return websocket, subscription_id
+        except Exception as e:
+            print(f"Connection failed: {e}")
+            retry_attempts += 1
+            sleep_time = min(2 ** retry_attempts, 60)  # Exponential backoff with cap at 60 seconds
+            print(f"Retrying in {sleep_time} seconds...")
+            await asyncio.sleep(sleep_time)
 
-        # Send the ping command after subscription confirmation
-        ping_message = {
-            "command": "message",
-            "identifier": subscription_id,
-            "data": json.dumps({"action": "ping"})
-        }
-        await websocket.send(json.dumps(ping_message))
-        response = await websocket.recv()
-        print(f"Received: {response}")
-
-        if json.loads(response).get("message", {}).get("type") == "pong":
-            print("Ping test succeeded.")
-            return websocket, subscription_id
-    except Exception as e:
-        print(f"Connection failed: {e}")
+    print("Max retry attempts reached. Exiting.")
     return None, None
 
 async def fetch_task_execution(execution_id):

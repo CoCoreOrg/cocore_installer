@@ -5,7 +5,7 @@ import ssl
 import requests
 import websockets
 from cryptography.fernet import Fernet
-from time import sleep
+import traceback
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
@@ -16,14 +16,19 @@ CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
 CA_CERT_FILE = f"{CERT_DIR}/ca.crt"
 
 def load_auth_key():
-    with open(SECRET_KEY_FILE, "rb") as key_file:
-        key = key_file.read()
-    cipher_suite = Fernet(key)
-    with open(AUTH_KEY_FILE, "rb") as file:
-        encrypted_key = file.read()
-    auth_key = cipher_suite.decrypt(encrypted_key).decode()
-    print(f"Auth Key: {auth_key}")  # Add this line for debugging
-    return auth_key
+    try:
+        with open(SECRET_KEY_FILE, "rb") as key_file:
+            key = key_file.read()
+        cipher_suite = Fernet(key)
+        with open(AUTH_KEY_FILE, "rb") as file:
+            encrypted_key = file.read()
+        auth_key = cipher_suite.decrypt(encrypted_key).decode()
+        print(f"Auth Key: {auth_key}")  # Add this line for debugging
+        return auth_key
+    except Exception as e:
+        print(f"Error loading auth key: {e}")
+        print(traceback.format_exc())
+        sys.exit(1)
 
 async def connect_and_subscribe(auth_type):
     ssl_context = ssl.create_default_context()
@@ -78,6 +83,7 @@ async def connect_and_subscribe(auth_type):
                 return websocket, subscription_id
         except Exception as e:
             print(f"Connection failed: {e}")
+            print(traceback.format_exc())
             retry_attempts += 1
             sleep_time = min(2 ** retry_attempts, 60)  # Exponential backoff with cap at 60 seconds
             print(f"Retrying in {sleep_time} seconds...")
@@ -87,71 +93,95 @@ async def connect_and_subscribe(auth_type):
     return None, None
 
 async def fetch_task_execution(execution_id):
-    url = f"https://cocore.io/task_executions/{execution_id}.json"
-    headers = {
-        "Authorization": f"Bearer {load_auth_key()}"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise Exception(f"Failed to fetch task execution: {response.status_code}")
+    try:
+        url = f"https://cocore.io/task_executions/{execution_id}.json"
+        headers = {
+            "Authorization": f"Bearer {load_auth_key()}"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Failed to fetch task execution: {response.status_code}")
+    except Exception as e:
+        print(f"Error fetching task execution: {e}")
+        print(traceback.format_exc())
+        raise
 
 def run_task(task_code, args):
-    local_scope = {}
-    exec(task_code, {}, local_scope)
-    if 'run' in local_scope:
-        return local_scope['run'](*args)
-    else:
-        raise Exception("No 'run' function found in task code")
+    try:
+        local_scope = {}
+        exec(task_code, {}, local_scope)
+        if 'run' in local_scope:
+            return local_scope['run'](*args)
+        else:
+            raise Exception("No 'run' function found in task code")
+    except Exception as e:
+        print(f"Error running task: {e}")
+        print(traceback.format_exc())
+        raise
 
 async def process_task_execution(execution_id):
-    task_execution = await fetch_task_execution(execution_id)
-    task_code = task_execution['task']['code']
-    input_args = task_execution['input'] or []
+    try:
+        task_execution = await fetch_task_execution(execution_id)
+        task_code = task_execution['task']['code']
+        input_args = task_execution['input'] or []
 
-    result = run_task(task_code, input_args)
+        result = run_task(task_code, input_args)
 
-    # Post the result back to the server
-    result_url = f"https://cocore.io/task_executions/{execution_id}"
-    headers = {
-        "Authorization": f"Bearer {load_auth_key()}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "task_execution": {
-            "output": result
+        # Post the result back to the server
+        result_url = f"https://cocore.io/task_executions/{execution_id}"
+        headers = {
+            "Authorization": f"Bearer {load_auth_key()}",
+            "Content-Type": "application/json"
         }
-    }
-    response = requests.patch(result_url, headers=headers, json=payload)
-    if response.status_code == 200:
-        print("Task result posted successfully")
-    else:
-        print(f"Failed to post task result: {response.status_code}")
+        payload = {
+            "task_execution": {
+                "output": result
+            }
+        }
+        response = requests.patch(result_url, headers=headers, json=payload)
+        if response.status_code == 200:
+            print("Task result posted successfully")
+        else:
+            print(f"Failed to post task result: {response.status_code}")
+    except Exception as e:
+        print(f"Error processing task execution: {e}")
+        print(traceback.format_exc())
+        raise
 
 async def fetch_next_task_execution():
-    url = "https://cocore.io/task_executions/next.json"
-    headers = {
-        "Authorization": f"Bearer {load_auth_key()}",
-        "Content-Type": "application/json"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    elif response.status_code == 404:
-        return None  # No task execution found
-    else:
-        raise Exception(f"Failed to fetch next task execution: {response.status_code}")
+    try:
+        url = "https://cocore.io/task_executions/next.json"
+        headers = {
+            "Authorization": f"Bearer {load_auth_key()}",
+            "Content-Type": "application/json"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None  # No task execution found
+        else:
+            raise Exception(f"Failed to fetch next task execution: {response.status_code}")
+    except Exception as e:
+        print(f"Error fetching next task execution: {e}")
+        print(traceback.format_exc())
+        raise
 
 async def process_all_pending_tasks():
     while True:
-        task_execution = await fetch_next_task_execution()
-        if task_execution is None:
-            print("No more pending task executions found.")
-            break
-        execution_id = task_execution['id']
-        await process_task_execution(execution_id)
-        await asyncio.sleep(1)  # Add delay to avoid spamming the server
+        try:
+            task_execution = await fetch_next_task_execution()
+            if task_execution is None:
+                print("No more pending task executions found.")
+                break
+            execution_id = task_execution['id']
+            await process_task_execution(execution_id)
+            await asyncio.sleep(1)  # Add delay to avoid spamming the server
+        except Exception as e:
+            print(f"Error processing pending tasks: {e}")
+            print(traceback.format_exc())
 
 async def task_listener(auth_type):
     while True:
@@ -187,6 +217,7 @@ async def task_listener(auth_type):
             await asyncio.sleep(1)
         except Exception as e:
             print(f"Error processing task: {e}")
+            print(traceback.format_exc())
 
 async def main(auth_type):
     websocket, subscription_id = await connect_and_subscribe(auth_type)

@@ -20,7 +20,9 @@ def load_auth_key():
     cipher_suite = Fernet(key)
     with open(AUTH_KEY_FILE, "rb") as file:
         encrypted_key = file.read()
-    return cipher_suite.decrypt(encrypted_key).decode()
+    auth_key = cipher_suite.decrypt(encrypted_key).decode()
+    print(f"Auth Key: {auth_key}")  # Add this line for debugging
+    return auth_key
 
 async def connect_and_subscribe(auth_type):
     ssl_context = ssl.create_default_context()

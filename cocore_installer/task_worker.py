@@ -118,6 +118,30 @@ async def process_task_execution(execution_id):
     else:
         print(f"Failed to post task result: {response.status_code}")
 
+async def fetch_next_task_execution():
+    url = "https://cocore.io/task_executions/next.json"
+    headers = {
+        "Authorization": f"Bearer {load_auth_key()}",
+        "Content-Type": "application/json"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    elif response.status_code == 404:
+        return None  # No task execution found
+    else:
+        raise Exception(f"Failed to fetch next task execution: {response.status_code}")
+
+async def process_all_pending_tasks():
+    while True:
+        task_execution = await fetch_next_task_execution()
+        if task_execution is None:
+            print("No more pending task executions found.")
+            break
+        execution_id = task_execution['id']
+        await process_task_execution(execution_id)
+        await asyncio.sleep(1)  # Add delay to avoid spamming the server
+
 async def task_listener(auth_type):
     while True:
         websocket, subscription_id = await connect_and_subscribe(auth_type)
@@ -148,7 +172,12 @@ async def task_listener(auth_type):
             print(f"Error processing task: {e}")
 
 async def main(auth_type):
-    await task_listener(auth_type)
+    websocket, subscription_id = await connect_and_subscribe(auth_type)
+    if not websocket:
+        print("Exiting due to unsuccessful WebSocket connection.")
+        return
+    await process_all_pending_tasks()  # Process all pending tasks on boot
+    await task_listener(auth_type)  # Start listening for new tasks
 
 if __name__ == "__main__":
     auth_type = "host"  # or "user" based on your context

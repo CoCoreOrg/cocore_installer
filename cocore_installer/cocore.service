@@ -1,0 +1,9 @@
+[Unit]
+Description=CoCore Startup Service
+
+[Service]
+Type=simple
+ExecStart=/root/init.sh
+
+[Install]
+WantedBy=multi-user.target

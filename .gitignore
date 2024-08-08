@@ -168,3 +168,6 @@ cython_debug/
 firecracker.rsa
 ubuntu-22.04.ext4
 vmlinux
+
+config/
+disks/

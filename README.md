@@ -7,12 +7,8 @@ This document summarizes the proof-of-concept CoCore implementation.
 To build and install the app, run the following commands in the `cocore_installer` root directory:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install .
-cocore-install
+./install.sh
 ```
-
 
 ## Uninstallation Instructions
 

@@ -14,6 +14,6 @@ python3 -m venv /root/venv
 
 source /root/venv/bin/activate
 
-pip install requests websockets cryptography
+pip install requests websockets cryptography psutil
 
 python3 /root/task_worker.py

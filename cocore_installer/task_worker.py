@@ -136,7 +136,7 @@ def run_task(task_code, args):
             end_time = time.perf_counter_ns()
             execution_time_microseconds = (end_time - start_time) / 1000
             print(f"Task executed in {execution_time_microseconds} microseconds")
-            return {"result": result, "execution_length": execution_time_microseconds}
+            return {"output": result, "execution_length": execution_time_microseconds}
         else:
             return {"error": "NoRunFunction", "error_message": "No run() function defined, failed to execute!"}
     except Exception as e:

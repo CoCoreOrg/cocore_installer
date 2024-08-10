@@ -17,7 +17,6 @@ CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
 CA_CERT_FILE = f"{CERT_DIR}/ca.crt"
-TOKEN_PATH = "/etc/cocore/tokenfile"
 
 def load_auth_key():
     try:
@@ -34,16 +33,21 @@ def load_auth_key():
         print(traceback.format_exc())
         sys.exit(1)
 
-def send_specs(token, cpu, ram):
+def send_specs(auth_key, cpu, ram):
     payload = {
-        "token": token,
         "cpu": cpu,
         "ram": ram
+    }
+
+    headers = {
+        "Authorization": f"Bearer {auth_key}",
+        "Content-Type": "application/json"
     }
 
     cmd = [
         'curl',
         '-X', 'POST',
+        '-H', f'Authorization: Bearer {auth_key}',
         '-H', 'Content-Type: application/json',
         '-d', json.dumps(payload),
         'https://cocore.io/hosts/update_specs'
@@ -261,11 +265,8 @@ async def task_listener(auth_type):
 async def main(auth_type):
     total_cpus, total_memory = get_system_resources()
 
-    # Load the token
-    with open(TOKEN_PATH, "r") as token_file:
-        token = token_file.read().strip()
-
-    send_specs(token, total_cpus, total_memory)
+    auth_key = load_auth_key()
+    send_specs(auth_key, total_cpus, total_memory)
 
     websocket, subscription_id = await connect_and_subscribe(auth_type)
     if not websocket:

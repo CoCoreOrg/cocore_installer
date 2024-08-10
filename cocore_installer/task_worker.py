@@ -7,6 +7,7 @@ import websockets
 from cryptography.fernet import Fernet
 import traceback
 import time
+import subprocess
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
@@ -15,6 +16,7 @@ CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
 CA_CERT_FILE = f"{CERT_DIR}/ca.crt"
+TOKEN_PATH = "/etc/cocore/tokenfile"
 
 def load_auth_key():
     try:
@@ -30,6 +32,33 @@ def load_auth_key():
         print(f"Error loading auth key: {e}")
         print(traceback.format_exc())
         sys.exit(1)
+
+def send_specs(token, cpu, ram):
+    payload = {
+        "token": token,
+        "cpu": cpu,
+        "ram": ram
+    }
+
+    cmd = [
+        'curl',
+        '-X', 'POST',
+        '-H', 'Content-Type: application/json',
+        '-d', json.dumps(payload),
+        'https://cocore.io/hosts/update_specs'
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    response = json.loads(result.stdout)
+
+    if result.returncode == 0 and response.get("success"):
+        print("Specifications updated successfully.")
+    else:
+        print(response.get("message"))
+
+def get_system_resources():
+    total_cpus = psutil.cpu_count(logical=True)
+    total_memory = psutil.virtual_memory().total // (1024 * 1024)  # Convert bytes to MiB
+    return total_cpus, total_memory
 
 async def connect_and_subscribe(auth_type):
     ssl_context = ssl.create_default_context()
@@ -229,6 +258,14 @@ async def task_listener(auth_type):
             print(traceback.format_exc())
 
 async def main(auth_type):
+    total_cpus, total_memory = get_system_resources()
+
+    # Load the token
+    with open(TOKEN_PATH, "r") as token_file:
+        token = token_file.read().strip()
+
+    send_specs(token, total_cpus, total_memory)
+
     websocket, subscription_id = await connect_and_subscribe(auth_type)
     if not websocket:
         print("Exiting due to unsuccessful WebSocket connection.")

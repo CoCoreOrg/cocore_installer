@@ -9,6 +9,7 @@ from cryptography.fernet import Fernet
 import traceback
 import time
 import subprocess
+import tempfile
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
@@ -133,26 +134,45 @@ async def fetch_task_execution(execution_id):
 
 def run_task(task_code, args):
     try:
-        local_scope = {}
-        exec(task_code, {}, local_scope)
-        if 'run' in local_scope:
-            start_time = time.perf_counter_ns()
-            result = local_scope['run'](*args)
-            end_time = time.perf_counter_ns()
-            execution_time_microseconds = (end_time - start_time) / 1000
-            print(f"Task executed in {execution_time_microseconds} microseconds")
-            return {"output": result, "execution_length": execution_time_microseconds}
-        else:
-            return {"error": "NoRunFunction", "error_message": "No run() function defined, failed to execute!"}
+        # Create the complete code by appending the __main__ block
+        main_block = f"""
+if __name__ == '__main__':
+    import sys
+    import json
+    args = json.loads(sys.argv[1])
+    result = run(*args)
+    print(json.dumps(result))
+"""
+        complete_code = task_code + main_block
+        # Create a temporary file to hold the complete code
+        with tempfile.NamedTemporaryFile(suffix=".py", mode='w', delete=False) as temp_code_file:
+            temp_code_file.write(complete_code)
+            temp_code_file_path = temp_code_file.name
+        # Serialize arguments to JSON to pass them to the subprocess
+        args_json = json.dumps(args)
+        # Execute the temporary Python file in a separate process
+        command = [sys.executable, temp_code_file_path, args_json]
+        result = subprocess.run(command, capture_output=True, text=True)
+        # Check for errors in the execution
+        if result.returncode != 0:
+            return {
+                "error": "ExecutionError",
+                "error_message": f"Subprocess returned non-zero exit code {result.returncode}",
+                "stderr": result.stderr
+            }
+        # Parse the output from the subprocess (assuming it returns JSON)
+        output = json.loads(result.stdout)
+        return {
+            "output": output,
+            "stderr": result.stderr
+        }
     except Exception as e:
-        error_context = {"error": str(e), "error_message": "Your code failed to complete because of an error.", "error_details": {}}
-        for attr in ["__cause__", "__context__", "args", "__traceback__"]:
-            if attr in dir(e):
-                if attr == "__traceback__":
-                    error_context["error_details"][attr] = '\n'.join(traceback.format_tb(getattr(e, attr)))
-                else:
-                    error_context["error_details"][attr] = str(getattr(e, attr))
-        return error_context
+        return {
+            "error": str(e),
+            "error_message": "An error occurred while executing the task.",
+            "traceback": traceback.format_exc()
+        }
+
 
 async def process_task_execution(execution_id):
     try:

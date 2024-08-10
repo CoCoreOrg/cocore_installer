@@ -152,7 +152,11 @@ if __name__ == '__main__':
         args_json = json.dumps(args)
         # Execute the temporary Python file in a separate process
         command = [sys.executable, temp_code_file_path, args_json]
+        start_time = time.perf_counter_ns()
         result = subprocess.run(command, capture_output=True, text=True)
+        end_time = time.perf_counter_ns()
+        execution_time_microseconds = (end_time - start_time) / 1000
+        print(f"Task executed in {execution_time_microseconds} microseconds")
         # Check for errors in the execution
         if result.returncode != 0:
             return {
@@ -164,6 +168,7 @@ if __name__ == '__main__':
         output = json.loads(result.stdout)
         return {
             "output": output,
+            "execution_length": execution_time_microseconds,
             "stderr": result.stderr
         }
     except Exception as e:

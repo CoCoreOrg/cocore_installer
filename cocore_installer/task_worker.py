@@ -148,13 +148,25 @@ if __name__ == '__main__':
         with tempfile.NamedTemporaryFile(suffix=".py", mode='w', delete=False) as temp_code_file:
             temp_code_file.write(complete_code)
             temp_code_file_path = temp_code_file.name
-        # Serialize arguments to JSON to pass them to the subprocess
-        args_json = json.dumps(args)
-        # Execute the temporary Python file in a separate process
-        command = [sys.executable, temp_code_file_path, args_json]
-        start_time = time.perf_counter_ns()
-        result = subprocess.run(command, capture_output=True, text=True)
-        end_time = time.perf_counter_ns()
+            temp_code_file.flush()
+
+            # Serialize arguments to JSON to pass them to the subprocess
+            args_json = json.dumps(args)
+            # Execute the temporary Python file in a separate process
+            command = [
+                'docker',
+                'run',
+                '-t',
+                '-v',
+                f'{temp_code_file_path}:/root/task.py'
+                'python:3',
+                'python3',
+                '/root/task.py',
+                args_json
+            ]
+            start_time = time.perf_counter_ns()
+            result = subprocess.run(command, capture_output=True, text=True)
+            end_time = time.perf_counter_ns()
         execution_time_microseconds = (end_time - start_time) / 1000
         print(f"Task executed in {execution_time_microseconds} microseconds")
         # Check for errors in the execution

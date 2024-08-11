@@ -9,8 +9,10 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
 # Download the system image file
 mkdir -p '/firecracker/cocore'
-curl -o '/firecracker/cocore/squashfs.img' 'https://cocore-images.nyc3.digitaloceanspaces.com/squashfs.img'
+curl -o '/firecracker/cocore/rootfs.ext4.tgz' 'https://cocore-images.nyc3.digitaloceanspaces.com/rootfs.ext4.tgz'
 curl -o '/firecracker/cocore/vmlinux' 'https://cocore-images.nyc3.digitaloceanspaces.com/vmlinux'
+
+tar -xzf '/firecracker/cocore/rootfs.ext4.tgz' -C '/firecracker/cocore'
 
 # Loop for auth key
 while true; do

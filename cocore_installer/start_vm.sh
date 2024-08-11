@@ -15,9 +15,8 @@ fi
 # TODO: Generate a better random name (since $RANDOM only generates four or five digit numbers)
 RUN_ID="$(echo $RANDOM | shasum | cut -f 1 -d ' ')"
 
-SQUASHFS_FILE="/firecracker/cocore/squashfs.img"
+ROOTFS_FILE="/firecracker/cocore/rootfs.ext4"
 KERNEL_FILE="/firecracker/cocore/vmlinux"
-OVERLAY_FILE="${PWD}/disks/${RUN_ID}.ext4"
 
 FIRECRACKER_BIN='/usr/local/bin/firecracker'
 FIRECRACKER_SOCKET="/firecracker/sockets/${RUN_ID}.socket"
@@ -28,26 +27,21 @@ GATEWAY_IP="172.16.${VM_NUMBER}.1"
 GUEST_IP="172.16.${VM_NUMBER}.2"
 GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
 
-# Create a 1 GB ext4-formatted overlay
-mkdir -p "${PWD}/disks"
-dd if=/dev/zero of="${OVERLAY_FILE}" conv=sparse bs=1M count=1024
-mkfs.ext4 "${OVERLAY_FILE}"
-
 # Mount the CoCore keys in the VM
 mkdir -p "/mnt/${RUN_ID}"
-mount -o loop "${OVERLAY_FILE}" "/mnt/${RUN_ID}"
+mount -o loop "${ROOTFS_FILE}" "/mnt/${RUN_ID}"
 
-mkdir -p "/mnt/${RUN_ID}/root/etc"
-cp -r /etc/cocore "/mnt/${RUN_ID}/root/etc"
+mkdir -p "/mnt/${RUN_ID}/etc"
+cp -r /etc/cocore "/mnt/${RUN_ID}/etc"
 
-mkdir -p "/mnt/${RUN_ID}/root/root"
-cp "${SCRIPT_DIR}/init.sh" "/mnt/${RUN_ID}/root/root/init.sh"
-cp "${SCRIPT_DIR}/task_worker.py" "/mnt/${RUN_ID}/root/root/task_worker.py"
-chmod +x "/mnt/${RUN_ID}/root/root/init.sh"
+mkdir -p "/mnt/${RUN_ID}/root"
+cp "${SCRIPT_DIR}/init.sh" "/mnt/${RUN_ID}/root/init.sh"
+cp "${SCRIPT_DIR}/task_worker.py" "/mnt/${RUN_ID}/root/task_worker.py"
+chmod +x "/mnt/${RUN_ID}/root/init.sh"
 
-mkdir -p "/mnt/${RUN_ID}/root/etc/systemd/system"
-cp "${SCRIPT_DIR}/cocore.service" "/mnt/${RUN_ID}/root/etc/systemd/system/cocore.service"
-systemctl --root="/mnt/${RUN_ID}/root" enable cocore.service
+mkdir -p "/mnt/${RUN_ID}/etc/systemd/system"
+cp "${SCRIPT_DIR}/cocore.service" "/mnt/${RUN_ID}/etc/systemd/system/cocore.service"
+systemctl --root="/mnt/${RUN_ID}" enable cocore.service
 
 umount -R "/mnt/${RUN_ID}"
 rmdir "/mnt/${RUN_ID}"
@@ -75,19 +69,14 @@ cat > "${PWD}/config/${RUN_ID}.json" <<-EOF
 	{
 		"boot-source": {
 			"kernel_image_path": "${KERNEL_FILE}",
-			"boot_args": "console=ttyS0 reboot=k panic=1 pci=off overlay_root=vdb init=/sbin/overlay-init ip=${GUEST_IP}:::255.255.255.252::eth0:off"
+			"boot_args": "console=ttyS0 reboot=k panic=1 pci=off ip=${GUEST_IP}:::255.255.255.252::eth0:off"
 		},
 		"drives": [
 			{
 				"drive_id": "rootfs",
-				"path_on_host": "${SQUASHFS_FILE}",
+				"path_on_host": "${ROOTFS_FILE}",
 				"is_root_device": true,
-				"is_read_only": true
-			},
-			{
-				"drive_id": "overlayfs",
-				"path_on_host": "${OVERLAY_FILE}",
-				"is_root_device": false
+				"is_read_only": false
 			}
 		],
 		"machine-config": {

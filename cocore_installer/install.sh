@@ -12,6 +12,26 @@ mkdir -p '/firecracker/cocore'
 curl -o '/firecracker/cocore/squashfs.img' 'https://cocore-images.nyc3.digitaloceanspaces.com/squashfs.img'
 curl -o '/firecracker/cocore/vmlinux' 'https://cocore-images.nyc3.digitaloceanspaces.com/vmlinux'
 
+# Prompt for the number of CPUs
+while true; do
+    read -p "Enter the number of CPUs: " cpus
+    if [[ "$cpus" =~ ^[1-9][0-9]*$ ]]; then
+        break
+    else
+        echo "Invalid input. Please enter a positive integer."
+    fi
+done
+
+# Prompt for the memory size in MB
+while true; do
+    read -p "Enter the memory size in MB: " memory
+    if [[ "$memory" =~ ^[1-9][0-9]*$ ]]; then
+        break
+    else
+        echo "Invalid input. Please enter a positive integer."
+    fi
+done
+
 # Loop for auth key
 while true; do
     echo "Please enter your authentication key:"
@@ -26,7 +46,7 @@ while true; do
     fi
 done
 
-# Install the CoCore service
+# Install the CoCore service with the CPU and memory values as environment variables
 cat > '/etc/systemd/system/cocore-host.service' <<-EOF
 [Unit]
 Description=CoCore Host Service
@@ -35,6 +55,8 @@ Description=CoCore Host Service
 Type=simple
 WorkingDirectory=$(dirname "${SCRIPT_DIR}")
 ExecStart=$(dirname "${SCRIPT_DIR}")/host.sh
+Environment="COCORE_CPUS=${cpus}"
+Environment="COCORE_MEMORY=${memory}"
 
 [Install]
 WantedBy=multi-user.target
@@ -55,4 +77,3 @@ cat <<-EOF
 	    systemctl status cocore-host
 
 EOF
-

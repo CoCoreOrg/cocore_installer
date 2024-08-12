@@ -14,6 +14,6 @@ python3 -m venv /root/venv
 
 source /root/venv/bin/activate
 
-pip install requests websockets cryptography psutil
+pip install requests websockets cryptography psutil boto3 urllib3 setuptools requests botocore certifi charset-normalizer idna typing-extensions packaging python-dateutil cryptography pyyaml aiobotocore six s3transfer pip numpy grpcio-status fsspec scikit-learn transformers
 
 python3 /root/task_worker.py

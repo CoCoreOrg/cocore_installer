@@ -4,13 +4,13 @@ set -e
 
 SCRIPT_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 LOGFILE="/var/log/start_vm.log"
-VM_NUMBER="$1"
 
 log() {
     echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a "${LOGFILE}"
 }
 
 log "Script started."
+
 # Use the environment variables passed from the service
 CPUS="${COCORE_CPUS}"
 MEMORY="${COCORE_MEMORY}"
@@ -23,6 +23,14 @@ log "COCORE_CPUS is: ${COCORE_CPUS}"
 log "MEMORY is: ${MEMORY}"
 log "COCORE_MEMORY is: ${COCORE_MEMORY}"
 
+if [ -z "${VM_NUMBER}" ] || [ "${VM_NUMBER}" -lt 1 ] || [ "${VM_NUMBER}" -gt 254 ]; then
+    log "Invalid VM number: ${VM_NUMBER}. Must be between 1 and 254."
+    echo "Usage: $0 <vm_number>"
+    echo "  where <vm_number> is a positive integer between 1 and 254"
+    exit 1
+fi
+
+log "VM number is valid: ${VM_NUMBER}"
 
 # Unique identifier for this VM instance
 RUN_ID="vm${VM_NUMBER}"
@@ -39,9 +47,12 @@ TAP_DEVICE="tapfc${VM_NUMBER}"
 GATEWAY_IP="172.16.${VM_NUMBER}.1"
 GUEST_IP="172.16.${VM_NUMBER}.2"
 GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
+set +e  # Disable immediate exit on error
 
 log "Stopping any existing VM with RUN_ID=${RUN_ID}..."
 FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
+
+log "FIRECRACKER_PID value: ${FIRECRACKER_PID}"
 
 if [ -z "${FIRECRACKER_PID}" ]; then
     log "No existing Firecracker process found with RUN_ID=${RUN_ID}."
@@ -62,6 +73,7 @@ else
         exit 1
     fi
 fi
+
 
 # Remove any existing socket and overlay file
 if [ -e "${FIRECRACKER_SOCKET}" ]; then
@@ -154,7 +166,7 @@ EOF
 
 "${FIRECRACKER_BIN}" \
     --api-sock "${FIRECRACKER_SOCKET}" \
-    --config-file "${PWD}/config/${RUN_ID}.json" \
+    --config-file "${PWD}/config/${RUN_ID}.json"
     # --log-path "${PWD}/firecracker.log" \
     # --level "Debug"
     # 2>&1 | tee -a "${LOGFILE}" &

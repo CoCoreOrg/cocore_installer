@@ -34,7 +34,7 @@ Description=CoCore Host Service
 [Service]
 Type=simple
 WorkingDirectory=$(dirname "${SCRIPT_DIR}")
-ExecStart=$(dirname "${SCRIPT_DIR}")/host.sh --cpus $VM_CPUS --memory $VM_MEM
+ExecStart=$(dirname "${SCRIPT_DIR}")/host.sh
 
 [Install]
 WantedBy=multi-user.target
@@ -55,3 +55,4 @@ cat <<-EOF
 	    systemctl status cocore-host
 
 EOF
+

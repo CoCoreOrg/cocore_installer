@@ -43,7 +43,9 @@ FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
 
 log "FIRECRACKER_PID value: ${FIRECRACKER_PID}"
 
-if [ -n "${FIRECRACKER_PID}" ]; then
+if [ -z "${FIRECRACKER_PID}" ]; then
+    log "No existing Firecracker process found with RUN_ID=${RUN_ID}."
+else
     log "Found Firecracker process with PID=${FIRECRACKER_PID}. Attempting to stop..."
     if kill "${FIRECRACKER_PID}"; then
         log "Successfully sent kill signal to PID=${FIRECRACKER_PID}."
@@ -59,9 +61,8 @@ if [ -n "${FIRECRACKER_PID}" ]; then
         log "Firecracker process did not terminate cleanly."
         exit 1
     fi
-else
-    log "No existing Firecracker process found with RUN_ID=${RUN_ID}."
 fi
+
 
 # Remove any existing socket and overlay file
 if [ -e "${FIRECRACKER_SOCKET}" ]; then

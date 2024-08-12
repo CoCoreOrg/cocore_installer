@@ -37,6 +37,7 @@ TAP_DEVICE="tapfc${VM_NUMBER}"
 GATEWAY_IP="172.16.${VM_NUMBER}.1"
 GUEST_IP="172.16.${VM_NUMBER}.2"
 GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
+set +e  # Disable immediate exit on error
 
 log "Stopping any existing VM with RUN_ID=${RUN_ID}..."
 FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")

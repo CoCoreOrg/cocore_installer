@@ -12,15 +12,17 @@ log() {
 log "Script started."
 
 VM_NUMBER="$1"
+CPUS="$2"
+MEMORY="$3"
 
 if [ -z "${VM_NUMBER}" ] || [ "${VM_NUMBER}" -lt 1 ] || [ "${VM_NUMBER}" -gt 254 ]; then
     log "Invalid VM number: ${VM_NUMBER}. Must be between 1 and 254."
-    echo "Usage: $0 <vm_number>"
-    echo "  where <vm_number> is a positive integer between 1 and 254"
+    echo "Usage: $0 <vm_number> <cpus> <memory_mb>"
     exit 1
 fi
 
 log "VM number is valid: ${VM_NUMBER}"
+log "Using ${CPUS} CPUs and ${MEMORY} MB of memory for the VM."
 
 # Unique identifier for this VM instance
 RUN_ID="vm${VM_NUMBER}"
@@ -37,7 +39,6 @@ TAP_DEVICE="tapfc${VM_NUMBER}"
 GATEWAY_IP="172.16.${VM_NUMBER}.1"
 GUEST_IP="172.16.${VM_NUMBER}.2"
 GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
-set +e  # Disable immediate exit on error
 
 log "Stopping any existing VM with RUN_ID=${RUN_ID}..."
 FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
@@ -63,7 +64,6 @@ else
         exit 1
     fi
 fi
-
 
 # Remove any existing socket and overlay file
 if [ -e "${FIRECRACKER_SOCKET}" ]; then
@@ -140,8 +140,8 @@ cat > "${PWD}/config/${RUN_ID}.json" <<-EOF
             }
         ],
         "machine-config": {
-            "vcpu_count": 2,
-            "mem_size_mib": 1024,
+            "vcpu_count": ${CPUS},
+            "mem_size_mib": ${MEMORY},
             "smt": false
         },
         "network-interfaces": [
@@ -156,7 +156,7 @@ EOF
 
 "${FIRECRACKER_BIN}" \
     --api-sock "${FIRECRACKER_SOCKET}" \
-    --config-file "${PWD}/config/${RUN_ID}.json"
+    --config-file "${PWD}/config/${RUN_ID}.json" \
     # --log-path "${PWD}/firecracker.log" \
     # --level "Debug"
     # 2>&1 | tee -a "${LOGFILE}" &

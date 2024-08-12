@@ -30,7 +30,12 @@ GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
 
 # Clean up any existing VM with the same RUN_ID
 echo "Stopping any existing VM with RUN_ID=${RUN_ID}..."
-pkill -f "${FIRECRACKER_BIN}" || true
+FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
+if [ -n "${FIRECRACKER_PID}" ]; then
+    echo "Stopping existing Firecracker VM with PID=${FIRECRACKER_PID}..."
+    kill "${FIRECRACKER_PID}"
+    wait "${FIRECRACKER_PID}" 2>/dev/null || true
+fi
 
 # Remove any existing socket and overlay file
 if [ -e "${FIRECRACKER_SOCKET}" ]; then
@@ -76,7 +81,7 @@ rmdir "/mnt/${RUN_ID}"
 "${SCRIPT_DIR}/configure_tap.sh" 'eth0' "${TAP_DEVICE}" "${GATEWAY_IP}/30"
 
 # Start the Firecracker service
-mkdir -p `dirname "${FIRECRACKER_SOCKET}"`
+mkdir -p "$(dirname "${FIRECRACKER_SOCKET}")"
 mkdir -p "${PWD}/config"
 cat > "${PWD}/config/${RUN_ID}.json" <<-EOF
     {

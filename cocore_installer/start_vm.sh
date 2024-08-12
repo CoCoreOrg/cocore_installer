@@ -109,7 +109,7 @@ cat > "${PWD}/config/${RUN_ID}.json" <<-EOF
 EOF
 
 "${FIRECRACKER_BIN}" \
-	--api-sock "${FIRECRACKER_SOCKET}" \
-	--config-file "${PWD}/config/${RUN_ID}.json"
-	# 2>&1 >> "${PWD}/firecracker.log" &
+    --api-sock "${FIRECRACKER_SOCKET}" \
+    --config-file "${PWD}/config/${RUN_ID}.json" \
+    2>&1 >> "${PWD}/firecracker.log"
 

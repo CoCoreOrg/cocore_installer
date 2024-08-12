@@ -44,7 +44,7 @@ while true; do
     fi
 done
 
-log "Using ${VM_CPUS} CPUs and ${VM_MEM} MB of memory for the VM."
+echo "Using ${VM_CPUS} CPUs and ${VM_MEM} MB of memory for the VM."
 
 # Loop for auth key
 while true; do

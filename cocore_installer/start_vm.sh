@@ -30,7 +30,7 @@ GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
 
 # Create a 1 GB ext4-formatted overlay
 mkdir -p "${PWD}/disks"
-dd if=/dev/zero of="${OVERLAY_FILE}" conv=sparse bs=1M count=1024
+dd if=/dev/zero of="${OVERLAY_FILE}" conv=sparse bs=1M count=4096
 mkfs.ext4 "${OVERLAY_FILE}"
 
 # Mount the CoCore keys in the VM

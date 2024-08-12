@@ -40,12 +40,25 @@ GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
 
 log "Stopping any existing VM with RUN_ID=${RUN_ID}..."
 FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
+
+log "FIRECRACKER_PID value: ${FIRECRACKER_PID}"
+
 if [ -n "${FIRECRACKER_PID}" ]; then
     log "Found Firecracker process with PID=${FIRECRACKER_PID}. Attempting to stop..."
-    kill "${FIRECRACKER_PID}" || { log "Failed to stop Firecracker process with PID=${FIRECRACKER_PID}."; exit 1; }
+    if kill "${FIRECRACKER_PID}"; then
+        log "Successfully sent kill signal to PID=${FIRECRACKER_PID}."
+    else
+        log "Failed to send kill signal to PID=${FIRECRACKER_PID}."
+        exit 1
+    fi
+
     log "Waiting for Firecracker process to terminate..."
-    wait "${FIRECRACKER_PID}" 2>/dev/null || { log "Firecracker process did not terminate cleanly."; exit 1; }
-    log "Firecracker process stopped successfully."
+    if wait "${FIRECRACKER_PID}" 2>/dev/null; then
+        log "Firecracker process terminated successfully."
+    else
+        log "Firecracker process did not terminate cleanly."
+        exit 1
+    fi
 else
     log "No existing Firecracker process found with RUN_ID=${RUN_ID}."
 fi

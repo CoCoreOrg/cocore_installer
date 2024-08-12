@@ -157,6 +157,8 @@ EOF
 "${FIRECRACKER_BIN}" \
     --api-sock "${FIRECRACKER_SOCKET}" \
     --config-file "${PWD}/config/${RUN_ID}.json" \
+    --log-path "${PWD}/firecracker.log" \
+    --level "Debug" \
     2>&1 | tee -a "${LOGFILE}" &
 
 log "Firecracker VM started successfully with RUN_ID=${RUN_ID}."

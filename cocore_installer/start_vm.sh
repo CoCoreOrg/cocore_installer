@@ -11,6 +11,9 @@ log() {
 }
 
 log "Script started."
+# Use the environment variables passed from the service
+CPUS="${COCORE_CPUS}"
+MEMORY="${COCORE_MEMORY}"
 
 if [ -z "${VM_NUMBER}" ] || [ "${VM_NUMBER}" -lt 1 ] || [ "${VM_NUMBER}" -gt 254 ]; then
     log "Invalid VM number: ${VM_NUMBER}. Must be between 1 and 254."
@@ -20,39 +23,6 @@ fi
 
 log "VM number is valid: ${VM_NUMBER}"
 
-# Detect number of CPUs and available memory
-NUM_CPUS=$(nproc)
-TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2/1024}' /proc/meminfo)
-
-echo "Detected system resources:"
-echo "Number of CPUs: $NUM_CPUS"
-echo "Total Memory: ${TOTAL_MEM}MB"
-
-# Ask the user to choose the number of CPUs to provision
-while true; do
-    echo "Enter the number of CPUs to allocate to the VM (1-$NUM_CPUS):"
-    read -r VM_CPUS
-
-    if [[ "$VM_CPUS" =~ ^[0-9]+$ ]] && [ "$VM_CPUS" -ge 1 ] && [ "$VM_CPUS" -le "$NUM_CPUS" ]; then
-        break
-    else
-        echo "Invalid number of CPUs. Please enter a number between 1 and $NUM_CPUS."
-    fi
-done
-
-# Ask the user to choose the amount of memory to provision
-while true; do
-    echo "Enter the amount of memory (in MB) to allocate to the VM (1-$TOTAL_MEM MB):"
-    read -r VM_MEM
-
-    if [[ "$VM_MEM" =~ ^[0-9]+$ ]] && [ "$VM_MEM" -ge 1 ] && [ "$VM_MEM" -le "$TOTAL_MEM" ]; then
-        break
-    else
-        echo "Invalid amount of memory. Please enter a value between 1 and $TOTAL_MEM MB."
-    fi
-done
-
-log "Using ${VM_CPUS} CPUs and ${VM_MEM} MB of memory for the VM."
 
 # Unique identifier for this VM instance
 RUN_ID="vm${VM_NUMBER}"
@@ -170,8 +140,8 @@ cat > "${PWD}/config/${RUN_ID}.json" <<-EOF
             }
         ],
         "machine-config": {
-            "vcpu_count": ${VM_CPUS},
-            "mem_size_mib": ${VM_MEM},
+            "vcpu_count": ${CPUS},
+            "mem_size_mib": ${MEMORY},
             "smt": false
         },
         "network-interfaces": [

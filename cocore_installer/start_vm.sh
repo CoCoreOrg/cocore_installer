@@ -16,7 +16,12 @@ CPUS="${COCORE_CPUS}"
 MEMORY="${COCORE_MEMORY}"
 VM_NUMBER="${VM_NUM}"
 
+log "VM num is: ${VM_NUM}"
 log "VM number is: ${VM_NUMBER}"
+log "CPUS is: ${CPUS}"
+log "COCORE_CPUS is: ${COCORE_CPUS}"
+log "MEMORY is: ${MEMORY}"
+log "COCORE_MEMORY is: ${COCORE_MEMORY}"
 
 
 # Unique identifier for this VM instance

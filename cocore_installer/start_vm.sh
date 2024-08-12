@@ -41,9 +41,13 @@ GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
 log "Stopping any existing VM with RUN_ID=${RUN_ID}..."
 FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
 if [ -n "${FIRECRACKER_PID}" ]; then
-    log "Stopping existing Firecracker VM with PID=${FIRECRACKER_PID}..."
-    kill "${FIRECRACKER_PID}"
-    wait "${FIRECRACKER_PID}" 2>/dev/null || true
+    log "Found Firecracker process with PID=${FIRECRACKER_PID}. Attempting to stop..."
+    kill "${FIRECRACKER_PID}" || { log "Failed to stop Firecracker process with PID=${FIRECRACKER_PID}."; exit 1; }
+    log "Waiting for Firecracker process to terminate..."
+    wait "${FIRECRACKER_PID}" 2>/dev/null || { log "Firecracker process did not terminate cleanly."; exit 1; }
+    log "Firecracker process stopped successfully."
+else
+    log "No existing Firecracker process found with RUN_ID=${RUN_ID}."
 fi
 
 # Remove any existing socket and overlay file

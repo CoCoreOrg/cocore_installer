@@ -48,7 +48,10 @@ chmod +x "/mnt/${RUN_ID}/root/root/init.sh"
 mkdir -p "/mnt/${RUN_ID}/root/etc/systemd/system"
 cp "${SCRIPT_DIR}/cocore.service" "/mnt/${RUN_ID}/root/etc/systemd/system/cocore.service"
 systemctl --root="/mnt/${RUN_ID}/root" enable cocore.service
-
+SWAP_FILE="/mnt/${RUN_ID}/root/swapfile"
+dd if=/dev/zero of="${SWAP_FILE}" bs=1M count=1024
+chmod 600 "${SWAP_FILE}"
+mkswap "${SWAP_FILE}"
 umount -R "/mnt/${RUN_ID}"
 rmdir "/mnt/${RUN_ID}"
 

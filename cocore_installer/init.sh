@@ -1,4 +1,5 @@
 #!/bin/bash
+swapon /root/swapfile
 
 set -e
 

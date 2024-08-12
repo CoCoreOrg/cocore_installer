@@ -71,6 +71,7 @@ WorkingDirectory=$(dirname "${SCRIPT_DIR}")
 ExecStart=$(dirname "${SCRIPT_DIR}")/host.sh
 Environment="COCORE_CPUS=${VM_CPUS}"
 Environment="COCORE_MEMORY=${VM_MEM}"
+Environment="VM_NUM=1"
 
 [Install]
 WantedBy=multi-user.target

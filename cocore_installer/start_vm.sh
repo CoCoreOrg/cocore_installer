@@ -14,14 +14,9 @@ log "Script started."
 # Use the environment variables passed from the service
 CPUS="${COCORE_CPUS}"
 MEMORY="${COCORE_MEMORY}"
+VM_NUMBER="${VM_NUM}"
 
-if [ -z "${VM_NUMBER}" ] || [ "${VM_NUMBER}" -lt 1 ] || [ "${VM_NUMBER}" -gt 254 ]; then
-    log "Invalid VM number: ${VM_NUMBER}. Must be between 1 and 254."
-    echo "Usage: $0 <vm_number>"
-    exit 1
-fi
-
-log "VM number is valid: ${VM_NUMBER}"
+log "VM number is: ${VM_NUMBER}"
 
 
 # Unique identifier for this VM instance

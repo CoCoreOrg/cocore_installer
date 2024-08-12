@@ -4,7 +4,7 @@ echo 'CoCore Host'
 
 # Default values for CPUs and memory (optional if not provided)
 CPUS=1
-MEMORY=512
+MEMORY=1024
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do

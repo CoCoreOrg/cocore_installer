@@ -43,8 +43,6 @@ GUEST_MAC="06:00:AC:10:$(printf '%02x' ${VM_NUMBER}):02"
 log "Stopping any existing VM with RUN_ID=${RUN_ID}..."
 FIRECRACKER_PID=$(pgrep -f "${FIRECRACKER_BIN}")
 
-log "FIRECRACKER_PID value: ${FIRECRACKER_PID}"
-
 if [ -z "${FIRECRACKER_PID}" ]; then
     log "No existing Firecracker process found with RUN_ID=${RUN_ID}."
 else

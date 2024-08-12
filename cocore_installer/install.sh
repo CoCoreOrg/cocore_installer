@@ -4,38 +4,6 @@ set -e
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
-# Detect number of CPUs and available memory
-NUM_CPUS=$(nproc)
-TOTAL_MEM=$(awk '/MemTotal/ {printf "%.0f", $2/1024}' /proc/meminfo)
-
-echo "Detected system resources:"
-echo "Number of CPUs: $NUM_CPUS"
-echo "Total Memory: ${TOTAL_MEM}MB"
-
-# Ask the user to choose the number of CPUs to provision
-while true; do
-    echo "Enter the number of CPUs to allocate to the VM (1-$NUM_CPUS):"
-    read -r VM_CPUS
-
-    if [[ "$VM_CPUS" =~ ^[0-9]+$ ]] && [ "$VM_CPUS" -ge 1 ] && [ "$VM_CPUS" -le "$NUM_CPUS" ]; then
-        break
-    else
-        echo "Invalid number of CPUs. Please enter a number between 1 and $NUM_CPUS."
-    fi
-done
-
-# Ask the user to choose the amount of memory to provision
-while true; do
-    echo "Enter the amount of memory (in MB) to allocate to the VM (1-$TOTAL_MEM MB):"
-    read -r VM_MEM
-
-    if [[ "$VM_MEM" =~ ^[0-9]+$ ]] && [ "$VM_MEM" -ge 1 ] && [ "$VM_MEM" -le "$TOTAL_MEM" ]; then
-        break
-    else
-        echo "Invalid amount of memory. Please enter a value between 1 and $TOTAL_MEM MB."
-    fi
-done
-
 # Install Firecracker
 "${SCRIPT_DIR}/install_firecracker.sh"
 

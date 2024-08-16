@@ -201,7 +201,7 @@ if __name__ == '__main__':
             return {
                 "error": "ExecutionError",
                 "error_message": f"Subprocess returned non-zero exit code {result.returncode}",
-                # "stderr": result.stderr
+                "error_details": result.stderr
             }
         
         # Parse the output from the subprocess (assuming it returns JSON)

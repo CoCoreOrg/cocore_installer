@@ -241,7 +241,7 @@ async def process_task_execution_concurrently(execution_id, executor):
 
 async def process_all_pending_tasks_concurrently():
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        futures = []
+        tasks = []
         while True:
             task_execution = await fetch_next_task_execution()
             if task_execution is None:
@@ -251,12 +251,15 @@ async def process_all_pending_tasks_concurrently():
             execution_id = task_execution['id']
 
             if should_launch_more_threads():
-                futures.append(asyncio.create_task(process_task_execution_concurrently(execution_id, executor)))
+                # Start a new asyncio task to process the execution concurrently
+                task = asyncio.create_task(process_task_execution_concurrently(execution_id, executor))
+                tasks.append(task)
 
             await asyncio.sleep(1)  # Add delay to avoid spamming the server
 
-        for future in as_completed(futures):
-            await future  # Ensures all tasks are completed
+        # Await all tasks to ensure they complete
+        for task in tasks:
+            await task
 
 async def process_task_execution(execution_id):
     try:

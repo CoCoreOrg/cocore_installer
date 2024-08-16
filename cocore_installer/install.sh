@@ -4,13 +4,20 @@ set -e
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
-# Install Firecracker
-"${SCRIPT_DIR}/install_firecracker.sh"
+# Reinstall Firecracker if it's missing
+if ! [ -x "$(command -v firecracker)" ]; then
+    echo "Firecracker binary not found, reinstalling..."
+    "${SCRIPT_DIR}/install_firecracker.sh"
+fi
 
-# Download the system image file
+# Download the system image file if it doesn't exist
 mkdir -p '/firecracker/cocore'
-curl -o '/firecracker/cocore/squashfs.img' 'https://cocore-images.nyc3.digitaloceanspaces.com/squashfs.img'
-curl -o '/firecracker/cocore/vmlinux' 'https://cocore-images.nyc3.digitaloceanspaces.com/vmlinux'
+if [ ! -f '/firecracker/cocore/squashfs.img' ]; then
+    curl -o '/firecracker/cocore/squashfs.img' 'https://cocore-images.nyc3.digitaloceanspaces.com/squashfs.img'
+fi
+if [ ! -f '/firecracker/cocore/vmlinux' ]; then
+    curl -o '/firecracker/cocore/vmlinux' 'https://cocore-images.nyc3.digitaloceanspaces.com/vmlinux'
+fi
 
 # Detect number of CPUs and available memory
 NUM_CPUS=$(nproc)

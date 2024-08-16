@@ -33,7 +33,7 @@ source /root/venv/bin/activate
 
 echo "Installing Python dependencies..." | tee /dev/kmsg
 exec > >(tee /dev/kmsg) 2>&1
-pip install requests websockets cryptography psutil boto3 urllib3 numpy transformers
+pip install requests websockets cryptography psutil
 
 echo "Running task_worker.py..." | tee /dev/kmsg
 exec > >(tee /dev/kmsg) 2>&1

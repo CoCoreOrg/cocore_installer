@@ -132,8 +132,31 @@ async def fetch_task_execution(execution_id):
         print(traceback.format_exc())
         raise
 
-def run_task(task_code, args):
+def install_packages_from_requirements(requirements):
     try:
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode='w', delete=False) as req_file:
+            req_file.write(requirements)
+            req_file_path = req_file.name
+        # Install the packages using pip
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_file_path])
+        print("Packages from requirements.txt installed successfully.")
+    except Exception as e:
+        print(f"Failed to install packages from requirements.txt: {e}")
+        print(traceback.format_exc())
+        return False
+    return True
+
+def run_task(task_requirements, task_code, args):
+    try:
+        # Install packages from the provided requirements.txt content
+        if task_requirements:
+            print("Installing packages from provided requirements.txt.")
+            if not install_packages_from_requirements(task_requirements):
+                return {
+                    "error": "PackageInstallationError",
+                    "error_message": "Failed to install one or more packages listed in requirements.txt."
+                }
+
         # Create the complete code by appending the __main__ block
         main_block = f"""
 if __name__ == '__main__':
@@ -144,12 +167,15 @@ if __name__ == '__main__':
     print(json.dumps(result))
 """
         complete_code = task_code + main_block
+
         # Create a temporary file to hold the complete code
         with tempfile.NamedTemporaryFile(suffix=".py", mode='w', delete=False) as temp_code_file:
             temp_code_file.write(complete_code)
             temp_code_file_path = temp_code_file.name
+        
         # Serialize arguments to JSON to pass them to the subprocess
         args_json = json.dumps(args)
+        
         # Execute the temporary Python file in a separate process
         command = [sys.executable, temp_code_file_path, args_json]
         start_time = time.perf_counter_ns()
@@ -157,6 +183,7 @@ if __name__ == '__main__':
         end_time = time.perf_counter_ns()
         execution_time_microseconds = (end_time - start_time) / 1000
         print(f"Task executed in {execution_time_microseconds} microseconds")
+
         # Check for errors in the execution
         if result.returncode != 0:
             return {
@@ -164,12 +191,12 @@ if __name__ == '__main__':
                 "error_message": f"Subprocess returned non-zero exit code {result.returncode}",
                 "stderr": result.stderr
             }
+        
         # Parse the output from the subprocess (assuming it returns JSON)
         output = json.loads(result.stdout)
         return {
             "output": output,
             "execution_length": execution_time_microseconds,
-            "stderr": result.stderr
         }
     except Exception as e:
         return {
@@ -178,14 +205,14 @@ if __name__ == '__main__':
             "traceback": traceback.format_exc()
         }
 
-
 async def process_task_execution(execution_id):
     try:
         task_execution = await fetch_task_execution(execution_id)
         task_code = task_execution['task']['code']
+        task_requirements = task_execution['task']['requirements']
         input_args = task_execution['input'] or []
 
-        result = run_task(task_code, input_args)
+        result = run_task(task_requirements, task_code, input_args)
 
         # Post the result back to the server
         result_url = f"https://cocore.io/task_executions/{execution_id}"

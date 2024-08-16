@@ -21,10 +21,16 @@ echo "Removing disk images and related files..."
 rm -f ubuntu-22.04.ext4 vmlinux firecracker.rsa
 
 # Remove Installed Packages and Dependencies
-echo "Removing Python packages..."
-source venv/bin/activate
-pip uninstall -y requests requests-unixsocket psutil six urllib3 cryptography websockets tornado cocore_installer
-deactivate
+if [ -d "venv" ]; then
+    echo "Removing Python packages..."
+    source venv/bin/activate
+    pip uninstall -y requests requests-unixsocket psutil six urllib3 cryptography websockets tornado cocore_installer
+    deactivate
+fi
+
+# Remove Python Virtual Environment
+echo "Removing Python virtual environment..."
+rm -rf venv
 
 # Remove Firecracker Binaries
 echo "Removing Firecracker binaries..."
@@ -34,10 +40,6 @@ sudo rm -f /usr/local/bin/jailer
 # Delete Configuration and Authentication Files
 echo "Removing configuration and authentication files..."
 sudo rm -rf /etc/cocore
-
-# Remove Python Virtual Environment
-echo "Removing Python virtual environment..."
-rm -rf venv
 
 # Clean Up Network Configuration
 echo "Cleaning up network configuration..."
@@ -59,4 +61,5 @@ sudo systemctl disable cocore-host.service
 sudo rm -f /etc/systemd/system/cocore-host.service
 sudo systemctl daemon-reload
 sudo systemctl reset-failed
+
 echo "CoCore uninstallation completed."

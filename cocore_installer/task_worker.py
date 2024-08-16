@@ -10,6 +10,7 @@ import traceback
 import time
 import subprocess
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
@@ -18,6 +19,16 @@ CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
 CA_CERT_FILE = f"{CERT_DIR}/ca.crt"
+MAX_THREADS = psutil.cpu_count(logical=True)
+CPU_THRESHOLD = 80.0  # CPU usage threshold in percentage
+
+def monitor_cpu_usage():
+    return psutil.cpu_percent(interval=1)
+
+def should_launch_more_threads():
+    current_cpu_usage = monitor_cpu_usage()
+    print(f"Current CPU usage: {current_cpu_usage}%")
+    return current_cpu_usage < CPU_THRESHOLD
 
 def load_auth_key():
     try:
@@ -205,6 +216,48 @@ if __name__ == '__main__':
             "traceback": traceback.format_exc()
         }
 
+async def process_task_execution_concurrently(execution_id, executor):
+    task_execution = await fetch_task_execution(execution_id)
+    task_code = task_execution['task']['code']
+    task_requirements = task_execution['task']['requirements']
+    input_args = task_execution['input'] or []
+
+    future = executor.submit(run_task, task_requirements, task_code, input_args)
+    result = future.result()
+
+    result_url = f"https://cocore.io/task_executions/{execution_id}"
+    headers = {
+        "Authorization": f"Bearer {load_auth_key()}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "task_execution": result
+    }
+    response = requests.patch(result_url, headers=headers, json=payload)
+    if response.status_code == 200:
+        print("Task result posted successfully")
+    else:
+        print(f"Failed to post task result: {response.status_code}")
+
+async def process_all_pending_tasks_concurrently():
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        futures = []
+        while True:
+            task_execution = await fetch_next_task_execution()
+            if task_execution is None:
+                print("No more pending task executions found.")
+                break
+
+            execution_id = task_execution['id']
+
+            if should_launch_more_threads():
+                futures.append(asyncio.create_task(process_task_execution_concurrently(execution_id, executor)))
+
+            await asyncio.sleep(1)  # Add delay to avoid spamming the server
+
+        for future in as_completed(futures):
+            await future  # Ensures all tasks are completed
+
 async def process_task_execution(execution_id):
     try:
         task_execution = await fetch_task_execution(execution_id)
@@ -314,7 +367,7 @@ async def task_listener(auth_type):
             keep_alive_task.cancel()
             print(traceback.format_exc())
 
-async def main(auth_type):
+async def old_main(auth_type):
     total_cpus, total_memory = get_system_resources()
 
     auth_key = load_auth_key()
@@ -325,6 +378,19 @@ async def main(auth_type):
         print("Exiting due to unsuccessful WebSocket connection.")
         return
     await process_all_pending_tasks()  # Process all pending tasks on boot
+    await task_listener(auth_type)  # Start listening for new tasks
+
+async def main(auth_type):
+    total_cpus, total_memory = get_system_resources()
+
+    auth_key = load_auth_key()
+    send_specs(auth_key, total_cpus, total_memory)
+
+    websocket, subscription_id = await connect_and_subscribe(auth_type)
+    if not websocket:
+        print("Exiting due to unsuccessful WebSocket connection.")
+        return
+    await process_all_pending_tasks_concurrently()  # Process all pending tasks concurrently
     await task_listener(auth_type)  # Start listening for new tasks
 
 if __name__ == "__main__":

@@ -37,6 +37,10 @@ echo "Removing Firecracker binaries..."
 sudo rm -f /usr/local/bin/firecracker
 sudo rm -f /usr/local/bin/jailer
 
+# Remove Firecracker Directory
+echo "Removing Firecracker directory..."
+sudo rm -rf /firecracker
+
 # Delete Configuration and Authentication Files
 echo "Removing configuration and authentication files..."
 sudo rm -rf /etc/cocore

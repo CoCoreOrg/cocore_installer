@@ -52,4 +52,11 @@ echo "Removing temporary and log files..."
 rm -rf ./cocore_installer/firecracker.log
 rm -rf $MOUNT_POINT
 
+# Remove CoCore systemd service
+echo "Removing CoCore systemd service..."
+sudo systemctl stop cocore-host.service
+sudo systemctl disable cocore-host.service
+sudo rm -f /etc/systemd/system/cocore-host.service
+sudo systemctl daemon-reload
+sudo systemctl reset-failed
 echo "CoCore uninstallation completed."

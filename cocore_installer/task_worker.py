@@ -191,6 +191,7 @@ if __name__ == '__main__':
         command = [sys.executable, temp_code_file_path, args_json]
         start_time = time.perf_counter_ns()
         result = subprocess.run(command, capture_output=True, text=True)
+        print(result)
         end_time = time.perf_counter_ns()
         execution_time_microseconds = (end_time - start_time) / 1000
         print(f"Task executed in {execution_time_microseconds} microseconds")

@@ -240,7 +240,7 @@ public class TaskCode {{
             main_rs_file.write(task_extension)
 
     @classmethod
-    def parsed_output(output):
+    def parsed_output(cls, output):
         parsers = [
             lambda o: json.loads(o.split(DEMARCATION)[-1]),
             lambda o: json.loads(o),
@@ -310,7 +310,7 @@ public class TaskCode {{
 
             output = result.stdout.strip()
             return {
-                "output": parsed_output(output),
+                "output": TaskRunners.parsed_output(output),
                 "execution_length": execution_time_microseconds,
             }
         except Exception as e:

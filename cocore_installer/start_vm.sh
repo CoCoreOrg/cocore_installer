@@ -86,10 +86,10 @@ if [ -e "${OVERLAY_FILE}" ]; then
     rm "${OVERLAY_FILE}"
 fi
 
-# Create a new 4 GB ext4-formatted overlay
-log "Creating a new 4 GB overlay filesystem: ${OVERLAY_FILE}"
+# Create a new 10 GB ext4-formatted overlay
+log "Creating a new 10 GB overlay filesystem: ${OVERLAY_FILE}"
 mkdir -p "${PWD}/disks"
-dd if=/dev/zero of="${OVERLAY_FILE}" conv=sparse bs=1M count=4096
+dd if=/dev/zero of="${OVERLAY_FILE}" conv=sparse bs=1M count=10280
 mkfs.ext4 "${OVERLAY_FILE}"
 log "Overlay filesystem created successfully."
 
@@ -103,6 +103,10 @@ cp -r /etc/cocore "/mnt/${RUN_ID}/root/etc"
 
 mkdir -p "/mnt/${RUN_ID}/root/root"
 cp "${SCRIPT_DIR}/init.sh" "/mnt/${RUN_ID}/root/root/init.sh"
+cp "${SCRIPT_DIR}/task_execution.py" "/mnt/${RUN_ID}/root/root/task_execution.py"
+cp "${SCRIPT_DIR}/task_extensions.py" "/mnt/${RUN_ID}/root/root/task_extensions.py"
+cp "${SCRIPT_DIR}/task_installers.py" "/mnt/${RUN_ID}/root/root/task_installers.py"
+cp "${SCRIPT_DIR}/task_runners.py" "/mnt/${RUN_ID}/root/root/task_runners.py"
 cp "${SCRIPT_DIR}/task_worker.py" "/mnt/${RUN_ID}/root/root/task_worker.py"
 chmod +x "/mnt/${RUN_ID}/root/root/init.sh"
 

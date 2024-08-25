@@ -11,7 +11,7 @@ import time
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from task_execution import process_task_execution
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
 WEBSOCKET_SERVER = "wss://cocore.io/cable"
@@ -218,27 +218,8 @@ if __name__ == '__main__':
         }
 
 async def process_task_execution_concurrently(execution_id, executor):
-    task_execution = await fetch_task_execution(execution_id)
-    task_code = task_execution['task']['code']
-    task_requirements = task_execution['task']['requirements']
-    input_args = task_execution['input'] or []
-
-    future = executor.submit(run_task, task_requirements, task_code, input_args)
-    result = future.result()
-
-    result_url = f"https://cocore.io/task_executions/{execution_id}"
-    headers = {
-        "Authorization": f"Bearer {load_auth_key()}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "task_execution": result
-    }
-    response = requests.patch(result_url, headers=headers, json=payload)
-    if response.status_code == 200:
-        print("Task result posted successfully")
-    else:
-        print(f"Failed to post task result: {response.status_code}")
+    executor.submit(process_task_execution, execution_id)
+    return future.result()
 
 async def process_all_pending_tasks_concurrently():
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:

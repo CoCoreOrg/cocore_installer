@@ -1,5 +1,5 @@
 import json
-
+DEMARCATION = "-=-=-=-=-=-=-=-=-=-=-"
 class TaskExtensions:
     @classmethod
     def python_extension(cls, args):
@@ -11,15 +11,17 @@ if __name__ == '__main__':
     json_string = json_string.replace("\\n", "\\\\n")
     args = json.loads(json_string)
     result = run(*args)
-    print(result)
+    print("{DEMARCATION}")
+    print(json.dumps(result))
 """
-
 
     @classmethod
     def node_extension(cls, args):
         return f"""
 const args = JSON.parse('{json.dumps(args)}');
-console.log(run(...args));
+const result = run(...args);
+console.log("{DEMARCATION}");
+console.log(JSON.stringify(result, null, 2));
 """
 
     @classmethod
@@ -27,7 +29,9 @@ console.log(run(...args));
         return f"""
 require 'json'
 args = JSON.parse('{args}')
-puts run(*args)
+result = run(*args)
+puts "{DEMARCATION}"
+puts JSON.pretty_generate(result)
 """
 
     @classmethod
@@ -42,12 +46,13 @@ func main() {{
     }}
 
     result := run(args)
-    jsonResult, err := json.Marshal(result)
+    jsonResult, err := json.MarshalIndent(result, "", "  ")
     if err != nil {{
         fmt.Println("Error serializing result:", err)
         os.Exit(1)
     }}
 
+    fmt.Println("{DEMARCATION}")
     fmt.Println(string(jsonResult))
 }}
 """
@@ -55,14 +60,15 @@ func main() {{
     @classmethod
     def rust_extension(cls, args):
         return f"""
-use serde_json::{{Value, to_string}};
+use serde_json::{{Value, to_string_pretty}};
 
 fn main() {{
     let args: Value = serde_json::from_str("{args}").unwrap();
 
     if let Value::Array(vec) = args {{
         let result = run(vec);  // Pass the args directly to the run function provided in task_code
-        let json_result = to_string(&result).unwrap();
+        let json_result = to_string_pretty(&result).unwrap();
+        println!("{DEMARCATION}");
         println!("{{}}", json_result);  // Print the JSON string of the result
     }} else {{
         println!("Error: Arguments should be a JSON array");
@@ -90,7 +96,8 @@ public class TaskCode {{
                 inputs[index] = it.next();
             }}
             JsonNode result = run(inputs);
-            System.out.println(mapper.writeValueAsString(result));
+            System.out.println("{DEMARCATION}");
+            System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result));
         }} catch (Exception e) {{
             e.printStackTrace();
         }}
@@ -98,4 +105,3 @@ public class TaskCode {{
 
     /*METHOD_PLACEHOLDER*/
 }}
-"""

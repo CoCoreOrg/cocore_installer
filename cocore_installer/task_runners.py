@@ -5,7 +5,7 @@ import json
 import time
 import traceback
 from task_installers import TaskInstallers
-
+from task_extensions import DEMARCATION
 class TaskRunners:
     
     @classmethod
@@ -239,6 +239,20 @@ public class TaskCode {{
             main_rs_file.write("\n")
             main_rs_file.write(task_extension)
 
+    @classmethod
+    def parsed_output(output):
+        parsers = [
+            lambda o: json.loads(o.split(DEMARCATION)[-1]),
+            lambda o: json.loads(o),
+            lambda o: json.loads(o.split("\n")[-1])
+        ]
+
+        for parse in parsers:
+            try:
+                return parse(output)
+            except json.JSONDecodeError:
+                continue
+        return output
 
     @classmethod
     def run_generic_task(cls, language, task_code, args, interpreter_command, file_extension, temp_dir, task_extension, compile_required=False):
@@ -296,7 +310,7 @@ public class TaskCode {{
 
             output = result.stdout.strip()
             return {
-                "output": output,
+                "output": parsed_output(output),
                 "execution_length": execution_time_microseconds,
             }
         except Exception as e:

@@ -79,6 +79,7 @@ fn main() {{
     @classmethod
     def java_extension(cls, args):
         args_json = json.dumps(args)
+
         return f"""
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

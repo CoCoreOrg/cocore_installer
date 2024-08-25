@@ -250,7 +250,7 @@ public class TaskCode {{
         for parse in parsers:
             try:
                 return parse(output)
-            except json.JSONDecodeError:
+            except:
                 continue
         return output
 

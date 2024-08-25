@@ -28,7 +28,7 @@ console.log(JSON.stringify(result, null, 2));
     def ruby_extension(cls, args):
         return f"""
 require 'json'
-args = JSON.parse('{args}')
+args = JSON.parse('{json.dumps(args)}')
 result = run(*args)
 puts "{DEMARCATION}"
 puts JSON.pretty_generate(result)
@@ -63,7 +63,7 @@ func main() {{
 use serde_json::{{Value, to_string_pretty}};
 
 fn main() {{
-    let args: Value = serde_json::from_str("{args}").unwrap();
+    let args: Value = serde_json::from_str("{json.dumps(args)}").unwrap();
 
     if let Value::Array(vec) = args {{
         let result = run(vec);  // Pass the args directly to the run function provided in task_code

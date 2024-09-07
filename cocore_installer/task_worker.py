@@ -1,3 +1,5 @@
+import os
+import subprocess
 import psutil
 import sys
 import asyncio
@@ -5,13 +7,23 @@ import json
 import ssl
 import requests
 import websockets
-from cryptography.fernet import Fernet
-import traceback
-import time
-import subprocess
 import tempfile
+import time
+import traceback
+from cryptography.fernet import Fernet
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from task_execution import process_task_execution
+from task_runners import TaskRunners
+from task_extensions import TaskExtensions
+MAX_THREADS = 10
+AUTH_KEY = os.getenv("COCORE_AUTH_KEY")
+LANGUAGE_MAP = {
+    "1": "python",
+    "2": "node",
+    "3": "ruby",
+    "4": "go",
+    "5": "rust",
+    "6": "java",
+}
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
 WEBSOCKET_SERVER = "wss://cocore.io/cable"
@@ -157,65 +169,22 @@ def install_packages_from_requirements(requirements):
         return False
     return True
 
-def run_task(task_requirements, task_code, args):
-    try:
-        # Install packages from the provided requirements.txt content
-        if task_requirements:
-            print("Installing packages from provided requirements.txt.")
-            if not install_packages_from_requirements(task_requirements):
-                return {
-                    "error": "PackageInstallationError",
-                    "error_message": "Failed to install one or more packages listed in requirements.txt."
-                }
-
-        # Create the complete code by appending the __main__ block
-        main_block = f"""
-if __name__ == '__main__':
-    import sys
-    import json
-    args = json.loads(sys.argv[1])
-    result = run(*args)
-    print(json.dumps(result))
-"""
-        complete_code = task_code + main_block
-
-        # Create a temporary file to hold the complete code
-        with tempfile.NamedTemporaryFile(suffix=".py", mode='w', delete=False) as temp_code_file:
-            temp_code_file.write(complete_code)
-            temp_code_file_path = temp_code_file.name
-        
-        # Serialize arguments to JSON to pass them to the subprocess
-        args_json = json.dumps(args)
-        
-        # Execute the temporary Python file in a separate process
-        command = [sys.executable, temp_code_file_path, args_json]
-        start_time = time.perf_counter_ns()
-        result = subprocess.run(command, capture_output=True, text=True)
-        print(result)
-        end_time = time.perf_counter_ns()
-        execution_time_microseconds = (end_time - start_time) / 1000
-        print(f"Task executed in {execution_time_microseconds} microseconds")
-
-        # Check for errors in the execution
-        if result.returncode != 0:
-            return {
-                "error": "ExecutionError",
-                "error_message": f"Subprocess returned non-zero exit code {result.returncode}",
-                "error_details": result.stderr
-            }
-        
-        # Parse the output from the subprocess (assuming it returns JSON)
-        output = json.loads(result.stdout)
-        return {
-            "output": output,
-            "execution_length": execution_time_microseconds,
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "error_message": "An error occurred while executing the task.",
-            "traceback": traceback.format_exc()
-        }
+def run_task(task_language_id, task_requirements, task_code, input_args):
+    task_language = LANGUAGE_MAP.get(str(task_language_id))
+    if "python" in task_language:
+        return TaskRunners.run_python_task(task_requirements, task_code, input_args, TaskExtensions.python_extension(input_args))
+    elif "node" in task_language:
+        return TaskRunners.run_node_task(task_requirements, task_code, input_args, TaskExtensions.node_extension(input_args))
+    elif "ruby" in task_language:
+        return TaskRunners.run_ruby_task(task_requirements, task_code, input_args, TaskExtensions.ruby_extension(input_args))
+    elif "go" in task_language:
+        return TaskRunners.run_go_task(task_requirements, task_code, input_args, TaskExtensions.go_extension(input_args))
+    elif "rust" in task_language:
+        return TaskRunners.run_rust_task(task_requirements, task_code, input_args, TaskExtensions.rust_extension(input_args))
+    elif "java" in task_language:
+        return TaskRunners.run_java_task(task_requirements, task_code, input_args, TaskExtensions.java_extension(input_args))
+    else:
+        return {"error": "UnsupportedLanguage", "error_message": f"Language '{task_language}' is not supported."}
 
 async def process_task_execution_concurrently(execution_id, executor):
     executor.submit(process_task_execution, execution_id)
@@ -246,16 +215,16 @@ async def process_all_pending_tasks_concurrently():
 async def process_task_execution(execution_id):
     try:
         task_execution = await fetch_task_execution(execution_id)
+        task_language = task_execution['task']['language']
         task_code = task_execution['task']['code']
         task_requirements = task_execution['task']['requirements']
         input_args = task_execution['input'] or []
 
-        result = run_task(task_requirements, task_code, input_args)
+        result = run_task(task_language, task_requirements, task_code, input_args)
 
-        # Post the result back to the server
         result_url = f"https://cocore.io/task_executions/{execution_id}"
         headers = {
-            "Authorization": f"Bearer {load_auth_key()}",
+            "Authorization": f"Bearer {AUTH_KEY}",
             "Content-Type": "application/json"
         }
         payload = {

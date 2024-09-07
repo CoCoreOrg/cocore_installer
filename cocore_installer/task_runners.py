@@ -281,14 +281,16 @@ public class TaskCode {{
 
     @classmethod
     def parsed_output(cls, output):
+        requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN parsed_output PHASE"})
         parsers = [
             lambda o: json.loads(o.split(DEMARCATION)[-1]),
             lambda o: json.loads(o),
             lambda o: json.loads(o.split("\n")[-1])
         ]
-
+        requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN parsers PHASE"})
         for parse in parsers:
             try:
+                requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN parse(output) PHASE"})
                 return parse(output)
             except:
                 continue
@@ -353,7 +355,7 @@ public class TaskCode {{
                 }
 
             output = result.stdout.strip()
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN output PHASE"})
+            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN output PHASE: "+ str(output)})
             return {
                 "output": TaskRunners.parsed_output(output),
                 "execution_length": execution_time_microseconds,

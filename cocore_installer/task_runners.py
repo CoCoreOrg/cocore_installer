@@ -249,7 +249,7 @@ public class TaskCode {{
             )
 
         except Exception as e:
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO ERROR PHASE"})
+            requests.post("http://cocore.io/debug_request", {"args": f"GOT TO ERROR PHASE: "+str(e)+" "+str(traceback.format_exc())})
             return {
                 "error": str(e),
                 "error_message": f"An error occurred while executing the task.",

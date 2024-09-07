@@ -32,19 +32,19 @@ log_status "swap_setup_started" "true" "Starting swap setup..."
 run_and_log "ls_env" "env"
 run_and_log "ls_root" "ls /"
 run_and_log "ls_root_dir" "ls /root"
-run_and_log "swapon" "swapon /root/swapfile"
+run_and_log "swapon" "swapon /swapfile"
 
 # Start CoCore initialization
 log_status "cocore_init_started" "true" "Starting CoCore initialization..."
 
 # Touch dpkg status file
-run_and_log "touch_dpkg" "touch /var/lib/dpkg/status"
+touch /var/lib/dpkg/status
 
 # Update apt-get package list
-run_and_log "apt_get_update_2" "apt-get update -y"
+apt-get update -y
 
 # Install system dependencies
-run_and_log "install_dependencies" "apt-get install -y tree python3 python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full"
+apt-get install -y tree python3 python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full
 
 # Clean up apt cache
 run_and_log "clean_apt_cache" "apt-get clean"

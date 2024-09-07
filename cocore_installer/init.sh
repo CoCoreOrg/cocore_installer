@@ -32,6 +32,7 @@ log_status "swap_setup_started" "true" "Starting swap setup..."
 run_and_log "ls_env" "env"
 run_and_log "ls_root" "ls /"
 run_and_log "ls_root_dir" "ls /root"
+chmod 600 /swapfile
 run_and_log "swapon" "swapon /swapfile"
 
 # Start CoCore initialization
@@ -50,10 +51,10 @@ apt-get install -y tree python3 python3-venv ffmpeg build-essential libjpeg-dev 
 run_and_log "clean_apt_cache" "apt-get clean"
 
 # Set up Python virtual environment
-run_and_log "setup_venv" "python3 -m venv /root/venv"
+python3 -m venv /root/venv
 
 # Activate virtual environment
-run_and_log "activate_venv" "source /root/venv/bin/activate"
+source /root/venv/bin/activate
 
 # Install Python dependencies
 run_and_log "install_python_deps" "pip install --upgrade pip setuptools wheel six requests websockets cryptography psutil"

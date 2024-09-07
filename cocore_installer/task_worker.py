@@ -15,7 +15,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from task_runners import TaskRunners
 from task_extensions import TaskExtensions
 MAX_THREADS = 10
-AUTH_KEY = os.getenv("COCORE_AUTH_KEY")
 LANGUAGE_MAP = {
     "1": "python",
     "2": "node",
@@ -226,7 +225,7 @@ async def process_task_execution(execution_id):
 
         result_url = f"https://cocore.io/task_executions/{execution_id}"
         headers = {
-            "Authorization": f"Bearer {AUTH_KEY}",
+            "Authorization": f"Bearer {load_auth_key()}",
             "Content-Type": "application/json"
         }
         payload = {

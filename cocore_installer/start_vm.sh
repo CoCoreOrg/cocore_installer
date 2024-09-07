@@ -114,12 +114,12 @@ mkdir -p "/mnt/${RUN_ID}/root/etc/systemd/system"
 cp "${SCRIPT_DIR}/cocore.service" "/mnt/${RUN_ID}/root/etc/systemd/system/cocore.service"
 systemctl --root="/mnt/${RUN_ID}/root" enable cocore.service
 
-log "Setting up swapfile."
-SWAP_FILE="/mnt/${RUN_ID}/root/swapfile"
-dd if=/dev/zero of="${SWAP_FILE}" bs=1M count=1024
-chmod 600 "${SWAP_FILE}"
-mkswap "${SWAP_FILE}"
-log "Swapfile setup complete."
+# log "Setting up swapfile."
+# SWAP_FILE="/mnt/${RUN_ID}/root/swapfile"
+# dd if=/dev/zero of="${SWAP_FILE}" bs=1M count=1024
+# chmod 600 "${SWAP_FILE}"
+# mkswap "${SWAP_FILE}"
+# log "Swapfile setup complete."
 
 umount -R "/mnt/${RUN_ID}"
 rmdir "/mnt/${RUN_ID}"
@@ -168,11 +168,11 @@ cat > "${PWD}/config/${RUN_ID}.json" <<-EOF
     }
 EOF
 
-"${FIRECRACKER_BIN}" \
+ionice -c 3 nice -n 19 "${FIRECRACKER_BIN}" \
     --api-sock "${FIRECRACKER_SOCKET}" \
     --config-file "${PWD}/config/${RUN_ID}.json"
-    # --log-path "${PWD}/firecracker.log" \
-    # --level "Debug"
+    --log-path "${PWD}/firecracker.log" \
+    --level "Debug"
     # 2>&1 | tee -a "${LOGFILE}" &
 
 log "Firecracker VM started successfully with RUN_ID=${RUN_ID}."

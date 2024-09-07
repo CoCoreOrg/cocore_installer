@@ -4,6 +4,7 @@ import tempfile
 import json
 import time
 import traceback
+import requests
 from task_installers import TaskInstallers
 from task_extensions import DEMARCATION
 class TaskRunners:
@@ -227,14 +228,12 @@ public class TaskCode {{
                 setup_project_structure(temp_dir, task_code, task_extension, task_requirements)
             else:
                 cls.setup_generic_project_structure(temp_dir, task_code, task_extension, file_extension)
-            
             temp_dir_with_deps = installer(temp_dir, task_requirements)
             if not temp_dir_with_deps:
                 return {
                     "error": "PackageInstallationError",
                     "error_message": f"Failed to install one or more packages for {file_extension}."
                 }
-
             return cls.run_generic_task(
                 language=language,
                 task_code=task_code,
@@ -283,7 +282,6 @@ public class TaskCode {{
             lambda o: json.loads(o),
             lambda o: json.loads(o.split("\n")[-1])
         ]
-
         for parse in parsers:
             try:
                 return parse(output)
@@ -301,7 +299,6 @@ public class TaskCode {{
 
             # Create the full path to the code file within the temporary directory
             temp_code_file_path = os.path.join(temp_dir, f"task_code{file_extension}")
-
             # Write the task code to the file within the temporary directory
             with open(temp_code_file_path, 'w') as temp_code_file:
                 temp_code_file.write(task_code)
@@ -338,7 +335,6 @@ public class TaskCode {{
 
             end_time = time.perf_counter_ns()
             execution_time_microseconds = (end_time - start_time) / 1000
-
             if result.returncode != 0:
                 return {
                     "error": "ExecutionError",

@@ -4,6 +4,7 @@ import tempfile
 import json
 import time
 import traceback
+import requests
 from task_installers import TaskInstallers
 from task_extensions import DEMARCATION
 class TaskRunners:
@@ -220,7 +221,6 @@ public class TaskCode {{
 
     @classmethod
     def run_language_task(cls, language, task_requirements, task_code, args, task_extension, installer, interpreter_command, file_extension, setup_project_structure=None, compile_required=False):
-        import requests
         requests.post("http://cocore.io/debug_request", {"args": json.dumps([str(e) for e in [language, task_requirements, task_code, args, task_extension, installer, interpreter_command, file_extension, setup_project_structure, compile_required]])})
         try:
             temp_dir = tempfile.mkdtemp()

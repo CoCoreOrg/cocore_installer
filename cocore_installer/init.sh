@@ -29,6 +29,7 @@ run_and_log "curl_install" "apt-get install -y curl"
 
 # Start swap setup
 log_status "swap_setup_started" "true" "Starting swap setup..."
+run_and_log "ls_start" "ls /root"
 run_and_log "swapon" "swapon /root/swapfile"
 
 # Start CoCore initialization
@@ -71,6 +72,6 @@ run_and_log "install_rust" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rust
 run_and_log "check_directory" "tree /usr/src"
 
 # Run task_worker.py
-run_and_log "run_task_worker" "python3 /usr/src/app/task_worker.py"
+run_and_log "run_task_worker" "python3 /root/task_worker.py"
 
 log_status "cocore_init_complete" "true" "CoCore initialization complete."

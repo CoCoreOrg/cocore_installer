@@ -41,7 +41,7 @@ run_and_log "touch_dpkg" "touch /var/lib/dpkg/status"
 run_and_log "apt_get_update_2" "apt-get update -y"
 
 # Install system dependencies
-run_and_log "install_dependencies" "apt-get install -y python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full"
+run_and_log "install_dependencies" "apt-get install -y tree python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full"
 
 # Clean up apt cache
 run_and_log "clean_apt_cache" "apt-get clean"
@@ -66,6 +66,9 @@ run_and_log "install_bundler" "gem install bundler"
 
 # Install Rust
 run_and_log "install_rust" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+
+# Check structure
+run_and_log "check_directory" "tree /usr/src"
 
 # Run task_worker.py
 run_and_log "run_task_worker" "python3 /usr/src/app/task_worker.py"

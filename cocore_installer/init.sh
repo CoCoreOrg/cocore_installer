@@ -44,7 +44,7 @@ touch /var/lib/dpkg/status
 apt-get update -y
 
 # Install system dependencies
-apt-get install -y tree python3 python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full
+apt-get install -y tree python3 python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full make libxml2-dev libxslt1-dev zlib1g-dev
 
 # Clean up apt cache
 run_and_log "clean_apt_cache" "apt-get clean"

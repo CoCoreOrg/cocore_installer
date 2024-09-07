@@ -29,6 +29,7 @@ run_and_log "curl_install" "apt-get install -y curl"
 
 # Start swap setup
 run_and_log "create_swapfile" "fallocate -l 1G /swapfile"
+chmod 600 /swapfile
 run_and_log "mkswap" "mkswap /swapfile"
 chmod 600 /swapfile
 run_and_log "swapon" "swapon /swapfile"
@@ -80,7 +81,7 @@ gem install bundler
 run_and_log "verify_bundler_installation" "bundler -v"
 
 # Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 export PATH="/root/.cargo/bin:${PATH}"
 export RUST_BACKTRACE=1
 

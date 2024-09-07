@@ -218,10 +218,7 @@ async def process_task_execution(execution_id):
         task_code = task_execution['task']['code']
         task_requirements = task_execution['task']['requirements']
         input_args = task_execution['input'] or []
-        requests.post("http://cocore.io/debug_request", {"args": "STARTING process_task_execution"})
         result = run_task(task_language, task_requirements, task_code, input_args)
-        requests.post("http://cocore.io/debug_request", {"args": "FINISHED process_task_execution"})
-        requests.post("http://cocore.io/debug_request", {"args": "RESULT IS: "+str(result)})
 
         result_url = f"https://cocore.io/task_executions/{execution_id}"
         headers = {
@@ -231,7 +228,6 @@ async def process_task_execution(execution_id):
         payload = {
             "task_execution": result
         }
-        requests.post("http://cocore.io/debug_request", {"args": "SENDING PATCH TO: "+str(result_url)+" "+str(headers)+" "+str(payload)})
         response = requests.patch(result_url, headers=headers, json=payload)
         if response.status_code == 200:
             print("Task result posted successfully")

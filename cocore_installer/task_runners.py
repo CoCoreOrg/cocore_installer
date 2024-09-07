@@ -221,7 +221,6 @@ public class TaskCode {{
 
     @classmethod
     def run_language_task(cls, language, task_requirements, task_code, args, task_extension, installer, interpreter_command, file_extension, setup_project_structure=None, compile_required=False):
-        requests.post("http://cocore.io/debug_request", {"args": json.dumps([str(e) for e in [language, task_requirements, task_code, args, task_extension, installer, interpreter_command, file_extension, setup_project_structure, compile_required]])})
         try:
             temp_dir = tempfile.mkdtemp()
             print(temp_dir)
@@ -229,14 +228,12 @@ public class TaskCode {{
                 setup_project_structure(temp_dir, task_code, task_extension, task_requirements)
             else:
                 cls.setup_generic_project_structure(temp_dir, task_code, task_extension, file_extension)
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO INSTALL PHASE"})
             temp_dir_with_deps = installer(temp_dir, task_requirements)
             if not temp_dir_with_deps:
                 return {
                     "error": "PackageInstallationError",
                     "error_message": f"Failed to install one or more packages for {file_extension}."
                 }
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN PHASE"})
             return cls.run_generic_task(
                 language=language,
                 task_code=task_code,
@@ -249,7 +246,6 @@ public class TaskCode {{
             )
 
         except Exception as e:
-            requests.post("http://cocore.io/debug_request", {"args": f"GOT TO ERROR PHASE: "+str(e)+" "+str(traceback.format_exc())})
             return {
                 "error": str(e),
                 "error_message": f"An error occurred while executing the task.",
@@ -281,16 +277,13 @@ public class TaskCode {{
 
     @classmethod
     def parsed_output(cls, output):
-        requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN parsed_output PHASE"})
         parsers = [
             lambda o: json.loads(o.split(DEMARCATION)[-1]),
             lambda o: json.loads(o),
             lambda o: json.loads(o.split("\n")[-1])
         ]
-        requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN parsers PHASE"})
         for parse in parsers:
             try:
-                requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN parse(output) PHASE"})
                 return parse(output)
             except:
                 continue
@@ -299,7 +292,6 @@ public class TaskCode {{
     @classmethod
     def run_generic_task(cls, language, task_code, args, interpreter_command, file_extension, temp_dir, task_extension, compile_required=False):
         try:
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN GENERIC PHASE"})
             start_time = time.perf_counter_ns()
 
             # Ensure the temporary directory exists (though it should already be created by the caller)
@@ -307,7 +299,6 @@ public class TaskCode {{
 
             # Create the full path to the code file within the temporary directory
             temp_code_file_path = os.path.join(temp_dir, f"task_code{file_extension}")
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN temp_code_file_path PHASE"})
             # Write the task code to the file within the temporary directory
             with open(temp_code_file_path, 'w') as temp_code_file:
                 temp_code_file.write(task_code)
@@ -316,7 +307,6 @@ public class TaskCode {{
                     temp_code_file.write(task_extension)
 
             args_json = json.dumps(args)
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN args_json PHASE"})
             if compile_required:
                 # Dynamically determine the command if interpreter_command is a lambda
                 if language == "rust":
@@ -341,12 +331,10 @@ public class TaskCode {{
                 command = interpreter_command.split() + [temp_code_file_path]
             # else:
             #     command = interpreter_command.split() + [temp_code_file_path, args_json]
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN subprocess PHASE"})
             result = subprocess.run(command, cwd=temp_dir, capture_output=True, text=True)
 
             end_time = time.perf_counter_ns()
             execution_time_microseconds = (end_time - start_time) / 1000
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN result PHASE"})
             if result.returncode != 0:
                 return {
                     "error": "ExecutionError",
@@ -355,13 +343,11 @@ public class TaskCode {{
                 }
 
             output = result.stdout.strip()
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN output PHASE: "+ str(output)})
             return {
                 "output": TaskRunners.parsed_output(output),
                 "execution_length": execution_time_microseconds,
             }
         except Exception as e:
-            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN ERROR PHASE"})
             return {
                 "error": str(e),
                 "error_message": f"An error occurred while executing the task with {interpreter_command}.",

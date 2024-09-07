@@ -28,11 +28,11 @@ run_and_log "apt_get_update" "apt-get update -y"
 run_and_log "curl_install" "apt-get install -y curl"
 
 # Start swap setup
-run_and_log "create_swapfile" "fallocate -l 1G /swapfile"
-chmod 600 /swapfile
-run_and_log "mkswap" "mkswap /swapfile"
-chmod 600 /swapfile
-run_and_log "swapon" "swapon /swapfile"
+# run_and_log "create_swapfile" "fallocate -l 1G /swapfile"
+# chmod 600 /swapfile
+# run_and_log "mkswap" "mkswap /swapfile"
+# chmod 600 /swapfile
+# run_and_log "swapon" "swapon /swapfile"
 
 # Start CoCore initialization
 log_status "cocore_init_started" "true" "Starting CoCore initialization..."
@@ -81,17 +81,12 @@ gem install bundler
 run_and_log "verify_bundler_installation" "bundler -v"
 
 # Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
-export PATH="/root/.cargo/bin:${PATH}"
-export RUST_BACKTRACE=1
+# curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+# export PATH="/root/.cargo/bin:${PATH}"
+# export RUST_BACKTRACE=1
 
 # Verify Rust installation
-run_and_log "verify_rust_installation" "rustc --version"
-
-# Check structure
-run_and_log "check_directory" "tree /usr/src"
+# run_and_log "verify_rust_installation" "rustc --version"
 
 # Run task_worker.py
 run_and_log "run_task_worker" "python3 /root/task_worker.py"
-
-log_status "cocore_init_complete" "true" "CoCore initialization complete."

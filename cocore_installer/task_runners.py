@@ -229,14 +229,14 @@ public class TaskCode {{
                 setup_project_structure(temp_dir, task_code, task_extension, task_requirements)
             else:
                 cls.setup_generic_project_structure(temp_dir, task_code, task_extension, file_extension)
-            
+            requests.post("http://cocore.io/debug_request", {"args": "GOT TO INSTALL PHASE"})
             temp_dir_with_deps = installer(temp_dir, task_requirements)
             if not temp_dir_with_deps:
                 return {
                     "error": "PackageInstallationError",
                     "error_message": f"Failed to install one or more packages for {file_extension}."
                 }
-
+            requests.post("http://cocore.io/debug_request", {"args": "GOT TO RUN PHASE"})
             return cls.run_generic_task(
                 language=language,
                 task_code=task_code,
@@ -249,6 +249,7 @@ public class TaskCode {{
             )
 
         except Exception as e:
+            requests.post("http://cocore.io/debug_request", {"args": "GOT TO ERROR PHASE"})
             return {
                 "error": str(e),
                 "error_message": f"An error occurred while executing the task.",

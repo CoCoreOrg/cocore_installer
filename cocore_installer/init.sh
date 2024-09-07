@@ -2,7 +2,7 @@
 set -x
 apt-get update -y
 apt-get install -y curl
-curl -X POST http://localhost:3000/debug_request -d "some=data"
+curl -X POST http://cocore.io/debug_request -d "some=data"
 echo "Starting swap setup..." | tee /dev/kmsg
 exec > >(tee /dev/kmsg) 2>&1
 swapon /root/swapfile

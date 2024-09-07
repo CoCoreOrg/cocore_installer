@@ -9,6 +9,7 @@ To build and install the app, run the following commands in the `cocore_installe
 ```bash
 ./install.sh
 ```
+(Installer should work on any *nix but does assume python/pip already exists)
 
 ## Uninstallation Instructions
 

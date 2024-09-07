@@ -49,16 +49,27 @@ class TaskRunners:
 
     @classmethod
     def run_go_task(cls, task_requirements, task_code, args, task_extension):
+        package_declaration, go_imports, go_non_import_code = cls.extract_go_package_imports_and_code(task_code)
+        _, ext_go_imports, ext_go_non_import_code = cls.extract_go_package_imports_and_code(task_extension)
+        
+        # Combine all imports, ensuring uniqueness
+        go_imports.update(ext_go_imports)
+        all_imports = "import (\n" + "\n".join(sorted(f'\t"{imp}"' for imp in go_imports)) + "\n)"
+        
+        # Combine the non-import code sections
+        combined_code = go_non_import_code + "\n" + ext_go_non_import_code
+        
+        # Ensure proper ordering of Go code, avoiding duplicate package declarations
+        full_go_code = f"{package_declaration}\n\n{all_imports}\n\n{combined_code}"
         return cls.run_language_task(
             language="go",
             task_requirements=task_requirements,
-            task_code=task_code,
+            task_code=full_go_code,
             args=args,
             task_extension=task_extension,
             installer=TaskInstallers.install_go_modules,
             interpreter_command="go run ./task_code.go",
             file_extension=".go",
-            setup_project_structure=cls.setup_go_project_structure,
             compile_required=False
         )
 
@@ -169,17 +180,43 @@ public class TaskCode {{
 
 
     @classmethod
-    def setup_go_project_structure(cls, temp_dir, task_code, task_extension, task_requirements):
-        # Ensure the temporary directory exists
-        os.makedirs(temp_dir, exist_ok=True)
+    def extract_go_package_imports_and_code(cls, code):
+        """Extract Go package declaration, import statements, and the rest of the code separately."""
+        imports = set()
+        non_import_code = []
+        package_declaration = None
+        in_import_block = False
 
-        # Merge task code and task extension into a single Go file
-        go_file_path = os.path.join(temp_dir, "task_code.go")
-        combined_code = task_code + "\n" + task_extension
-        
-        # Write the combined code to task_code.go
-        with open(go_file_path, 'w') as go_file:
-            go_file.write(combined_code)
+        for line in code.splitlines():
+            stripped_line = line.strip()
+
+            if stripped_line.startswith("package "):
+                if not package_declaration:
+                    package_declaration = line.strip()
+            elif stripped_line.startswith("import "):
+                in_import_block = True
+                # Single-line import statement or start of multi-line import block
+                if stripped_line.startswith("import ("):
+                    continue  # Start of a multi-line import block
+                elif stripped_line.startswith("import \""):
+                    imports.add(stripped_line.replace("import", "").strip().replace("\"", ""))
+                else:
+                    in_import_block = False
+                    non_import_code.append(line)
+            elif in_import_block:
+                # Inside a multi-line import block
+                if stripped_line == ")":
+                    in_import_block = False
+                else:
+                    imports.add(stripped_line.replace("\"", "").strip())
+            else:
+                non_import_code.append(line)
+
+        # Ensure a package declaration exists
+        if not package_declaration:
+            package_declaration = "package main"
+
+        return package_declaration, imports, "\n".join(non_import_code)
 
     @classmethod
     def run_language_task(cls, language, task_requirements, task_code, args, task_extension, installer, interpreter_command, file_extension, setup_project_structure=None, compile_required=False):
@@ -269,7 +306,8 @@ public class TaskCode {{
             with open(temp_code_file_path, 'w') as temp_code_file:
                 temp_code_file.write(task_code)
                 temp_code_file.write("\n")
-                temp_code_file.write(task_extension)
+                if language != "go":
+                    temp_code_file.write(task_extension)
 
             args_json = json.dumps(args)
             if compile_required:

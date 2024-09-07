@@ -37,6 +37,14 @@ puts JSON.pretty_generate(result)
     @classmethod
     def go_extension(cls, args):
         return f"""
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "os"
+)
+
 func main() {{
     var args []interface{{}}
     err := json.Unmarshal([]byte(`{json.dumps(args)}`), &args)

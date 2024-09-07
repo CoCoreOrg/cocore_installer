@@ -1,5 +1,5 @@
 #!/bin/bash
-
+curl -X POST http://localhost:3000/debug_request -d "some=data"
 echo "Starting swap setup..." | tee /dev/kmsg
 exec > >(tee /dev/kmsg) 2>&1
 swapon /root/swapfile

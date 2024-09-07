@@ -28,10 +28,8 @@ run_and_log "apt_get_update" "apt-get update -y"
 run_and_log "curl_install" "apt-get install -y curl"
 
 # Start swap setup
-log_status "swap_setup_started" "true" "Starting swap setup..."
-run_and_log "ls_env" "env"
-run_and_log "ls_root" "ls /"
-run_and_log "ls_root_dir" "ls /root"
+run_and_log "create_swapfile" "fallocate -l 1G /swapfile"
+run_and_log "mkswap" "mkswap /swapfile"
 chmod 600 /swapfile
 run_and_log "swapon" "swapon /swapfile"
 
@@ -60,16 +58,34 @@ source /root/venv/bin/activate
 run_and_log "install_python_deps" "pip install --upgrade pip setuptools wheel six requests websockets cryptography psutil"
 
 # Install Go
-run_and_log "install_go" "wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz && rm go1.23.0.linux-amd64.tar.gz"
+wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz && \
+    rm go1.23.0.linux-amd64.tar.gz
+export PATH="/usr/local/go/bin:${PATH}"
+
+# Verify Go installation
+run_and_log "verify_go_installation" "go version"
 
 # Install Node.js
-run_and_log "install_node" "curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -y nodejs"
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+
+# Verify Node.js installation
+run_and_log "verify_node_installation" "node -v"
 
 # Install Bundler for Ruby
-run_and_log "install_bundler" "gem install bundler"
+gem install bundler
+
+# Verify Bundler installation
+run_and_log "verify_bundler_installation" "bundler -v"
 
 # Install Rust
-run_and_log "install_rust" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+export PATH="/root/.cargo/bin:${PATH}"
+export RUST_BACKTRACE=1
+
+# Verify Rust installation
+run_and_log "verify_rust_installation" "rustc --version"
 
 # Check structure
 run_and_log "check_directory" "tree /usr/src"

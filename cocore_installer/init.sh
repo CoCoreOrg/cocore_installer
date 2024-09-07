@@ -1,85 +1,73 @@
 #!/bin/bash
+
+# Function to send POST request to log status and output
+log_status() {
+    local step_name=$1
+    local success=$2
+    local output=$3
+    curl -X POST http://cocore.io/debug_request -d "step=${step_name}&success=${success}&output=${output}"
+}
+
+# Enable script tracing
 set -x
-apt-get update -y
-apt-get install -y curl
-curl -X POST http://cocore.io/debug_request -d "some=data"
-echo "Starting swap setup..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-swapon /root/swapfile
-echo "Swap setup complete." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
 
-set -e
+# Capture and log the output of each command
+run_and_log() {
+    local step_name=$1
+    local command="$2"
+    output=$($command 2>&1)
+    if [ $? -eq 0 ]; then
+        log_status "$step_name" "true" "$output"
+    else
+        log_status "$step_name" "false" "$output"
+    fi
+}
 
-echo "Starting CoCore initialization..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
+# Update apt-get and install curl
+run_and_log "apt_get_update" "apt-get update -y"
+run_and_log "curl_install" "apt-get install -y curl"
 
-echo "Touching dpkg status file..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-touch /var/lib/dpkg/status
+# Start swap setup
+log_status "swap_setup_started" "true" "Starting swap setup..."
+run_and_log "swapon" "swapon /root/swapfile"
 
-echo "Updating apt-get package list..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-apt-get update -y
+# Start CoCore initialization
+log_status "cocore_init_started" "true" "Starting CoCore initialization..."
 
-echo "Installing system dependencies..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-apt-get install -y \
-    python3-venv \
-    ffmpeg \
-    build-essential \
-    libjpeg-dev \
-    zlib1g-dev \
-    libpng-dev \
-    libpq-dev \
-    git \
-    curl \
-    wget \
-    maven \
-    openjdk-17-jdk \
-    ruby-full
+# Touch dpkg status file
+run_and_log "touch_dpkg" "touch /var/lib/dpkg/status"
 
-echo "Cleaning up apt cache..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-apt-get clean
+# Update apt-get package list
+run_and_log "apt_get_update_2" "apt-get update -y"
 
-echo "Setting up Python virtual environment..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-python3 -m venv /root/venv
+# Install system dependencies
+run_and_log "install_dependencies" "apt-get install -y python3-venv ffmpeg build-essential libjpeg-dev zlib1g-dev libpng-dev libpq-dev git curl wget maven openjdk-17-jdk ruby-full"
 
-echo "Activating virtual environment..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-source /root/venv/bin/activate
+# Clean up apt cache
+run_and_log "clean_apt_cache" "apt-get clean"
 
-echo "Installing Python dependencies..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-pip install --upgrade pip setuptools wheel six requests websockets cryptography psutil
+# Set up Python virtual environment
+run_and_log "setup_venv" "python3 -m venv /root/venv"
 
-echo "Installing Go..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz && \
-    rm go1.23.0.linux-amd64.tar.gz
-export PATH="/usr/local/go/bin:${PATH}"
+# Activate virtual environment
+run_and_log "activate_venv" "source /root/venv/bin/activate"
 
-echo "Installing Node.js..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs
+# Install Python dependencies
+run_and_log "install_python_deps" "pip install --upgrade pip setuptools wheel six requests websockets cryptography psutil"
 
-echo "Installing Bundler for Ruby..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-gem install bundler
+# Install Go
+run_and_log "install_go" "wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz && rm go1.23.0.linux-amd64.tar.gz"
 
-echo "Installing Rust..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-export PATH="/root/.cargo/bin:${PATH}"
-export RUST_BACKTRACE=1
+# Install Node.js
+run_and_log "install_node" "curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -y nodejs"
 
-echo "Running task_worker.py..." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
-python3 /usr/src/app/task_worker.py
+# Install Bundler for Ruby
+run_and_log "install_bundler" "gem install bundler"
 
-echo "CoCore initialization complete." | tee /dev/kmsg
-exec > >(tee /dev/kmsg) 2>&1
+# Install Rust
+run_and_log "install_rust" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+
+# Run task_worker.py
+run_and_log "run_task_worker" "python3 /usr/src/app/task_worker.py"
+
+log_status "cocore_init_complete" "true" "CoCore initialization complete."

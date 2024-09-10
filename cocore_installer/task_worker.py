@@ -174,6 +174,32 @@ def set_host_status_sync(status):
         print(f"Error setting host status to {status}: {e}")
         print(traceback.format_exc())
 
+async def process_task_execution_by_task_execution(task_execution):
+    try:
+        task_language = task_execution['task']['language']
+        task_code = task_execution['task']['code']
+        task_requirements = task_execution['task']['requirements']
+        input_args = task_execution['input'] or []
+        result = run_task(task_language, task_requirements, task_code, input_args)
+
+        result_url = f"https://cocore.io/task_executions/{execution_id}"
+        headers = {
+            "Authorization": f"Bearer {load_auth_key()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "task_execution": result
+        }
+        response = requests.patch(result_url, headers=headers, json=payload)
+        if response.status_code == 200:
+            print("Task result posted successfully")
+        else:
+            print(f"Failed to post task result: {response.status_code}")
+    except Exception as e:
+        print(f"Error processing task execution: {e}")
+        print(traceback.format_exc())
+        raise
+
 async def process_task_execution(execution_id):
     try:
         task_execution = await fetch_task_execution(execution_id)

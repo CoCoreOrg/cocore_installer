@@ -6,10 +6,10 @@ import asyncio
 import json
 import ssl
 import requests
-import websockets
 import tempfile
 import time
 import traceback
+import redis
 from cryptography.fernet import Fernet
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from task_runners import TaskRunners
@@ -25,13 +25,17 @@ LANGUAGE_MAP = {
 }
 AUTH_KEY_FILE = "/etc/cocore/auth_key"
 SECRET_KEY_FILE = "/etc/cocore/secret.key"
-WEBSOCKET_SERVER = "wss://cocore.io/cable"
 CERT_DIR = "/etc/cocore/certificates"
 CLIENT_CERT_FILE = f"{CERT_DIR}/client.crt"
 CLIENT_KEY_FILE = f"{CERT_DIR}/client.key"
 CA_CERT_FILE = f"{CERT_DIR}/ca.crt"
 MAX_THREADS = psutil.cpu_count(logical=True)
 CPU_THRESHOLD = 80.0  # CPU usage threshold in percentage
+def connect_to_redis():
+    auth_key = load_auth_key()
+    redis_url = os.getenv('REDIS_SERVER', 'redis://scheduler.cocore.io:6379/0')
+    client = redis.Redis.from_url(redis_url, username=auth_key, password=auth_key)
+    return client, f'job_queue:{auth_key}'
 
 def monitor_cpu_usage():
     return psutil.cpu_percent(interval=1)
@@ -88,56 +92,6 @@ def get_system_resources():
     total_memory = psutil.virtual_memory().total // (1024 * 1024)  # Convert bytes to MiB
     return total_cpus, total_memory
 
-async def connect_and_subscribe(auth_type):
-    ssl_context = ssl.create_default_context()
-    ssl_context.load_cert_chain(certfile=CLIENT_CERT_FILE, keyfile=CLIENT_KEY_FILE)
-    ssl_context.load_verify_locations(cafile=CA_CERT_FILE)
-    ssl_context.verify_mode = ssl.CERT_REQUIRED
-
-    auth_key = load_auth_key()
-    headers = {
-        "Authorization": f"Bearer {auth_key}",
-        "Auth-Type": auth_type
-    }
-
-    retry_attempts = 0
-    max_retries = 10
-
-    while retry_attempts < max_retries:
-        try:
-            websocket = await websockets.connect(WEBSOCKET_SERVER, ssl=ssl_context, extra_headers=headers)
-            print("Connected to WebSocket server")
-
-            # Subscribe to the HostChannel
-            subscribe_message = {
-                "command": "subscribe",
-                "identifier": json.dumps({"channel": "HostChannel"})
-            }
-            await websocket.send(json.dumps(subscribe_message))
-
-            # Wait for the subscription confirmation
-            while True:
-                response = await websocket.recv()
-                print(f"Received: {response}")
-                response_data = json.loads(response)
-
-                if response_data.get("type") == "confirm_subscription":
-                    print("Subscription confirmed.")
-                    subscription_id = response_data.get("identifier")
-                    break
-
-            return websocket, subscription_id
-        except Exception as e:
-            print(f"Connection failed: {e}")
-            print(traceback.format_exc())
-            retry_attempts += 1
-            sleep_time = min(2 ** retry_attempts, 60)  # Exponential backoff with cap at 60 seconds
-            print(f"Retrying in {sleep_time} seconds...")
-            await asyncio.sleep(sleep_time)
-
-    print("Max retry attempts reached. Exiting.")
-    return None, None
-
 async def fetch_task_execution(execution_id):
     try:
         url = f"https://cocore.io/task_executions/{execution_id}.json"
@@ -153,20 +107,6 @@ async def fetch_task_execution(execution_id):
         print(f"Error fetching task execution: {e}")
         print(traceback.format_exc())
         raise
-
-def install_packages_from_requirements(requirements):
-    try:
-        with tempfile.NamedTemporaryFile(suffix=".txt", mode='w', delete=False) as req_file:
-            req_file.write(requirements)
-            req_file_path = req_file.name
-        # Install the packages using pip
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_file_path])
-        print("Packages from requirements.txt installed successfully.")
-    except Exception as e:
-        print(f"Failed to install packages from requirements.txt: {e}")
-        print(traceback.format_exc())
-        return False
-    return True
 
 def run_task(task_language_id, task_requirements, task_code, input_args):
     task_language = LANGUAGE_MAP.get(str(task_language_id))
@@ -210,6 +150,25 @@ async def process_all_pending_tasks_concurrently():
         # Await all tasks to ensure they complete
         for task in tasks:
             await task
+
+async def set_host_status(status):
+    try:
+        url = f"https://cocore.io/set_host_status"
+        headers = {
+            "Authorization": f"Bearer {load_auth_key()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "status": status
+        }
+        response = requests.patch(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            print(f"Host status set to {status} successfully")
+        else:
+            print(f"Failed to set host status to {status}: {response.status_code}")
+    except Exception as e:
+        print(f"Error setting host status to {status}: {e}")
+        print(traceback.format_exc())
 
 async def process_task_execution(execution_id):
     try:
@@ -271,80 +230,57 @@ async def process_all_pending_tasks():
             print(f"Error processing pending tasks: {e}")
             print(traceback.format_exc())
 
-async def send_keep_alive(websocket, subscription_id, interval=30):
-    while True:
-        try:
-            await asyncio.sleep(interval)  # Adjust the interval as needed
-            keep_alive_message = {
-                "command": "message",
-                "identifier": subscription_id,
-                "data": json.dumps({"action": "keep_alive"})
-            }
-            await websocket.send(json.dumps(keep_alive_message))
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            print(f"Error sending keep-alive message: {e}")
-            break
-
-async def task_listener(auth_type):
-    while True:
-        websocket, subscription_id = await connect_and_subscribe(auth_type)
-        if not websocket:
-            print("Exiting due to unsuccessful WebSocket connection.")
-            return
-
-        print('\nVM is ready to accept tasks. :)\n')
-        sys.stdout.flush()
-
-        keep_alive_task = asyncio.create_task(send_keep_alive(websocket, subscription_id))
-
-        try:
-            async for message in websocket:
-                print('Got message: ' + message)
-                response_data = json.loads(message)
-                message = response_data.get("message", {})
-                if isinstance(message, dict) and message.get("type") == "execute_task":
-                    execution_id = response_data.get("message", {}).get("execution_id")
-                    await process_task_execution(execution_id)
+def task_listener():
+    redis_client, queue_name = connect_to_redis()
+    
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        futures = []
+        
+        while True:
+            if should_launch_more_threads():
+                # Use BLPOP to block until a task is available
+                _, task_execution_raw = redis_client.blpop(queue_name, timeout=0)
+                if task_execution_raw:
+                    task_execution = json.loads(task_execution_raw)
+                    future = executor.submit(process_task_execution, task_execution)
+                    futures.append(future)
                 else:
-                    print(f"Unhandled message type: {response_data}")
-                await process_all_pending_tasks()
-        except websockets.ConnectionClosed:
-            print("Connection closed, reconnecting...")
-            keep_alive_task.cancel()
-            await asyncio.sleep(1)
-        except Exception as e:
-            print(f"Error processing task: {e}")
-            keep_alive_task.cancel()
-            print(traceback.format_exc())
+                    print("No task found in the queue.")
+            # Clean up completed futures
+            futures = [f for f in futures if not f.done()]
+            time.sleep(1)  # Avoid spamming Redis with requests
 
-async def old_main(auth_type):
+def shutdown_handler(loop, signal=None):
+    """Handle shutdown signals and set host status to offline."""
+    print(f"Received exit signal {signal.name}...")
+    asyncio.run_coroutine_threadsafe(set_host_status("offline"), loop).result()
+    loop.stop()
+
+async def main():
     total_cpus, total_memory = get_system_resources()
-
     auth_key = load_auth_key()
     send_specs(auth_key, total_cpus, total_memory)
 
-    websocket, subscription_id = await connect_and_subscribe(auth_type)
-    if not websocket:
-        print("Exiting due to unsuccessful WebSocket connection.")
-        return
-    await process_all_pending_tasks()  # Process all pending tasks on boot
-    await task_listener(auth_type)  # Start listening for new tasks
-
-async def main(auth_type):
-    total_cpus, total_memory = get_system_resources()
-
-    auth_key = load_auth_key()
-    send_specs(auth_key, total_cpus, total_memory)
-
-    websocket, subscription_id = await connect_and_subscribe(auth_type)
-    if not websocket:
-        print("Exiting due to unsuccessful WebSocket connection.")
-        return
-    await process_all_pending_tasks_concurrently()  # Process all pending tasks concurrently
-    await task_listener(auth_type)  # Start listening for new tasks
+    try:
+        await process_all_pending_tasks_concurrently()  # Process all pending tasks concurrently
+        task_listener()  # Start listening for new tasks
+    except Exception as e:
+        print(f"Exception occurred in main loop: {e}")
+        print(traceback.format_exc())
+    finally:
+        await set_host_status("offline")
 
 if __name__ == "__main__":
-    auth_type = "host"  # or "user" based on your context
-    asyncio.run(main(auth_type))
+    loop = asyncio.get_event_loop()
+
+    # Register signal handlers for a clean shutdown
+    signals = (signal.SIGTERM, signal.SIGINT)
+    for s in signals:
+        loop.add_signal_handler(s, lambda s=s: shutdown_handler(loop, s))
+
+    try:
+        loop.run_until_complete(set_host_status("online"))
+        loop.run_until_complete(main())
+    finally:
+        loop.run_until_complete(set_host_status("offline"))
+        loop.close()

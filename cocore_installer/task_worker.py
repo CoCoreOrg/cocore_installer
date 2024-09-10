@@ -259,6 +259,7 @@ def shutdown_handler(loop, signal=None):
 
 async def main():
     total_cpus, total_memory = get_system_resources()
+    await set_host_status("online")
     auth_key = load_auth_key()
     send_specs(auth_key, total_cpus, total_memory)
 

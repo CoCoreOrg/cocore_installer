@@ -174,14 +174,14 @@ def set_host_status_sync(status):
         print(f"Error setting host status to {status}: {e}")
         print(traceback.format_exc())
 
-async def process_task_execution_by_task_execution(task_execution):
+def process_task_execution_by_task_execution(task_execution):
     try:
+        execution_id = task_execution["id"]
         task_language = task_execution['task']['language']
         task_code = task_execution['task']['code']
         task_requirements = task_execution['task']['requirements']
         input_args = task_execution['input'] or []
         result = run_task(task_language, task_requirements, task_code, input_args)
-
         result_url = f"https://cocore.io/task_executions/{execution_id}"
         headers = {
             "Authorization": f"Bearer {load_auth_key()}",
@@ -200,7 +200,7 @@ async def process_task_execution_by_task_execution(task_execution):
         print(traceback.format_exc())
         raise
 
-async def process_task_execution(execution_id):
+def process_task_execution(execution_id):
     try:
         task_execution = await fetch_task_execution(execution_id)
         task_language = task_execution['task']['language']

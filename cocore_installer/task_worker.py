@@ -153,6 +153,9 @@ async def process_all_pending_tasks_concurrently():
             await task
 
 async def set_host_status(status):
+    set_host_status_sync(status)
+
+def set_host_status_sync(status):
     try:
         url = f"https://cocore.io/set_host_status"
         headers = {
@@ -251,11 +254,11 @@ def task_listener():
             futures = [f for f in futures if not f.done()]
             time.sleep(1)  # Avoid spamming Redis with requests
 
-def shutdown_handler(loop, signal=None):
+def shutdown_handler(signal_received, frame):
     """Handle shutdown signals and set host status to offline."""
-    print(f"Received exit signal {signal.name}...")
-    asyncio.run_coroutine_threadsafe(set_host_status("offline"), loop).result()
-    loop.stop()
+    print(f"Received exit signal {signal_received}...")
+    set_host_status("offline")
+    sys.exit(0)
 
 async def main():
     total_cpus, total_memory = get_system_resources()
@@ -273,18 +276,13 @@ async def main():
         await set_host_status("offline")
 
 if __name__ == "__main__":
+    # Register signal handlers for a clean shutdown
+    signal.signal(signal.SIGTERM, shutdown_handler)
+    signal.signal(signal.SIGINT, shutdown_handler)
+
+    set_host_status_sync("online")
+
     try:
-        await set_host_status("online")
-        loop = asyncio.get_event_loop()
-        try:
-            # Register signal handlers for a clean shutdown
-            signals = (signal.SIGTERM, signal.SIGINT)
-            for s in signals:
-                loop.add_signal_handler(s, lambda s=s: shutdown_handler(loop, s))
-            loop.run_until_complete(set_host_status("online"))
-            loop.run_until_complete(main())
-        finally:
-            loop.run_until_complete(set_host_status("offline"))
-            loop.close()
+        asyncio.run(main("host"))  # Run the main event loop
     finally:
-        await set_host_status("offline")
+        set_host_status_sync("offline")

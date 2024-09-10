@@ -89,4 +89,8 @@ run_and_log "verify_bundler_installation" "bundler -v"
 # run_and_log "verify_rust_installation" "rustc --version"
 
 # Run task_worker.py
+run_and_log "starting_task_worker" "ls"
+
 run_and_log "run_task_worker" "python3 /root/task_worker.py"
+
+run_and_log "dead_task_worker" "ls"

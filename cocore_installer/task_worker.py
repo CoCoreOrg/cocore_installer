@@ -273,16 +273,18 @@ async def main():
         await set_host_status("offline")
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-
-    # Register signal handlers for a clean shutdown
-    signals = (signal.SIGTERM, signal.SIGINT)
-    for s in signals:
-        loop.add_signal_handler(s, lambda s=s: shutdown_handler(loop, s))
-
     try:
-        loop.run_until_complete(set_host_status("online"))
-        loop.run_until_complete(main())
+        await set_host_status("online")
+        loop = asyncio.get_event_loop()
+        try:
+            # Register signal handlers for a clean shutdown
+            signals = (signal.SIGTERM, signal.SIGINT)
+            for s in signals:
+                loop.add_signal_handler(s, lambda s=s: shutdown_handler(loop, s))
+            loop.run_until_complete(set_host_status("online"))
+            loop.run_until_complete(main())
+        finally:
+            loop.run_until_complete(set_host_status("offline"))
+            loop.close()
     finally:
-        loop.run_until_complete(set_host_status("offline"))
-        loop.close()
+        await set_host_status("offline")

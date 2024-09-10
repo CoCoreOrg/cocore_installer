@@ -272,7 +272,7 @@ def task_listener():
                 _, task_execution_raw = redis_client.blpop(queue_name, timeout=0)
                 if task_execution_raw:
                     task_execution = json.loads(task_execution_raw)
-                    future = executor.submit(process_task_execution, task_execution)
+                    future = executor.submit(process_task_execution_by_task_execution, task_execution)
                     futures.append(future)
                 else:
                     print("No task found in the queue.")

@@ -165,7 +165,7 @@ def set_host_status_sync(status):
         payload = {
             "status": status
         }
-        response = requests.patch(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
             print(f"Host status set to {status} successfully")
         else:
@@ -283,6 +283,6 @@ if __name__ == "__main__":
     set_host_status_sync("online")
 
     try:
-        asyncio.run(main("host"))  # Run the main event loop
+        asyncio.run(main())  # Run the main event loop
     finally:
         set_host_status_sync("offline")

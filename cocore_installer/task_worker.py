@@ -93,7 +93,7 @@ def get_system_resources():
     total_memory = psutil.virtual_memory().total // (1024 * 1024)  # Convert bytes to MiB
     return total_cpus, total_memory
 
-async def fetch_task_execution(execution_id):
+def fetch_task_execution(execution_id):
     try:
         url = f"https://cocore.io/task_executions/{execution_id}.json"
         headers = {
@@ -202,7 +202,7 @@ def process_task_execution_by_task_execution(task_execution):
 
 def process_task_execution(execution_id):
     try:
-        task_execution = await fetch_task_execution(execution_id)
+        task_execution = fetch_task_execution(execution_id)
         task_language = task_execution['task']['language']
         task_code = task_execution['task']['code']
         task_requirements = task_execution['task']['requirements']

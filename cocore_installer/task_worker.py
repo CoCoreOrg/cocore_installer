@@ -10,6 +10,7 @@ import tempfile
 import time
 import traceback
 import redis
+import signal
 from cryptography.fernet import Fernet
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from task_runners import TaskRunners
